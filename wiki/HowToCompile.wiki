@@ -1,0 +1,28 @@
+#summary How to build the project.
+#labels Phase-Requirements
+
+= Introduction =
+
+This file described how to build and make a new version of Soiled.
+
+= Details =
+
+Soiled is developed in the [http://www.haxe.org/ haXe] language, so in order to compile the code, haXe has to be installed first. For many GNU/linux distributions it is already available in their repositories, otherwise visit haXe's site and follow the installation instructions there.
+
+Download Soiled's code somewhere, go to the src directory and run "make". If it doesn't work (many windows systems I'd guess), copy CompileTimeTemplate.hx to CompileTime.hx and run haxe compile.hxml to compile the code (but then the compile time isn't added to the binary).
+
+= New version =
+
+To make a new version:
+  * Update Telnet.hx and update the version number in one place.
+  * Update Client.hx and update the version number in one place.
+  * Commit.
+  * Make a tag of the whole project dir in subversion with: svn cp https://soiled.googlecode.com/svn/trunk https://soiled.googlecode.com/svn/tags/VERSION
+  * Check out the tag in some new directory.
+  * Build with make (or copy CompileTimeTemplate.hx to CompileTime.hx, update its time manually before compiling with haxe).
+  * Copy the soiled.swf file to the html directory
+  * zip doc, html, misc, LICENSE to a file called soiled-VERSION.zip
+  * Upload soiled-VERSION.zip to google code.
+  * Write a new release note in the wiki.
+  * Update Releases to point to the new release note.
+  * Deprecate old release notes.
