@@ -1,0 +1,10 @@
+#summary A link page to the versious release notes.
+#labels Featured
+
+= Introduction =
+
+The latest releases should have a release note page linked from this page.
+
+= Details =
+
+* ReleaseNoteForVersion_0_43
