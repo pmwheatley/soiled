@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!DOCTYPE cross-domain-policy SYSTEM "/xml/dtds/cross-domain-policy.dtd">
+<cross-domain-policy> 
+   <site-control permitted-cross-domain-policies="master-only"/>
+   <allow-access-from domain="dum.acc.umu.se" to-ports="2001" />
+   <allow-access-from domain="localhost" to-ports="2003" />
+   <allow-access-from domain="localhost" to-ports="23" />
+</cross-domain-policy>
