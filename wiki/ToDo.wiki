@@ -2,6 +2,7 @@
 
 = Features that would be good to support =
 
+  * When right-clicking on a URL, it should be possible to choose open and get them to open in a new window/tab.
   * Application/Normal Keypad.
   * autowrap support.
   * xterm:ish mouse tracking.
@@ -20,3 +21,6 @@
   * Word wrapping in the client (must be setable). Lesser muds need this...
   * Expand variables in aliases/macros.
   * Set variables from regexps matching received text (limited triggers).
+  * Store last line in a variable.
+  * Store last command in a variable.
+  * Store last argument in a variable.
