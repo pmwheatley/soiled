@@ -1,0 +1,22 @@
+#summary The list of things to do.
+
+= Features that would be good to support =
+
+  * Application/Normal Keypad.
+  * autowrap support.
+  * xterm:ish mouse tracking.
+  * Fix resize so it doesn't keep sending the "new" screensize when the rows & heights are still the same.
+  * Support copy & scrollback at the same time. Be able to select more than a screen of text.
+  * Re-add support for double clicking when selecting and make it better (like xterm)
+
+  * Pass all tests for the vttest program...
+
+= Features that would be good when using Soiled as a mud client =
+
+  * auto logon - run a special macro/alias when the client has been connected.
+  * Use a split screen when scrolling back, so one always sees the bottom of the screen. That is good for muds.
+  * CTRL-R/S to search the command line history. Should work like readline.
+  * TAB expansion of previous commands (if first on the line) and words (when later on the line).
+  * Word wrapping in the client (must be setable). Lesser muds need this...
+  * Expand variables in aliases/macros.
+  * Set variables from regexps matching received text (limited triggers).
