@@ -1,0 +1,36 @@
+#summary How to install the client as a facebook application.
+
+= Introduction =
+
+Making a facebook application is really easy and it can make it easier for people to try your mud.
+
+= Details =
+
+Install soiled somewhere on a html page that covers the whole screen (just like the provided soiled.html file does).
+
+Test that it works.
+
+Go to: http://www.facebook.com/developers/ and register as a FB-developer.
+
+Create a new FB application by clicking on the "+Set Up New Application" button.
+
+Give the application a name, agree to the terms and press the button.
+
+In the "URL for callback" field, add the URL to the installed Soiled.
+
+Go to the "Canvas" tab and choose "IFrame" as method, also add a unique canvas name in the "URL to canvas" field.
+
+Then press save changes and test your new application.
+
+
+You should of course add more info to the application registration. This was just the minimum.
+
+If you really want to integrate with the facebook platform, you should choose the "FBML" method instead of "IFrame" and choose a different file on your server as "URL for callback". You would need the "facebook php client" downloaded and added to some directory on your webserver and in there you should add a php file with something like this:
+{{{
+<?php require_once 'appinclude.php'; php?>
+<fb:iframe src="http://dum.acc.umu.se/soiled/" smartsize="true" frameborder="0"> </fb:iframe>
+}}}
+
+The appinclude.php file is from the "facebook php client" package and in it you'll have to change "$appapikey" and  "$appsecret" with the information from the application registration page.
+
+You can read more about it here: http://developer.facebook.com/
