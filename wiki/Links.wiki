@@ -1,0 +1,6 @@
+#summary Links to relevant pages.
+
+  * http://vt100.net/docs/vt102-ug/ - VT102 user guide
+  * http://www.xfree86.org/current/ctlseqs.html - xterm control sequences.
+  * http://vt100.net/emu/ - Good information about terminal emulators. The control sequence handling in Soiled should really implement the described parser.
+  * http://invisible-island.net/vttest/vttest.html - Vttest tests for testing VT100/VT220 terminal emulators.
