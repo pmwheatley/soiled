@@ -212,7 +212,6 @@ class Client {
 
             charBuffer = new CharBuffer();
             vt100 = new VT100(sendByte, charBuffer);
-            flash.Lib.current.addChildAt(charBuffer, 0);
 
 	    textField = new TextField();
 	    textField.type = TextFieldType.INPUT;
@@ -223,7 +222,9 @@ class Client {
 	    textField.addEventListener(TextEvent.TEXT_INPUT, onText);
 	    textField.width = flash.Lib.current.width;
 	    textField.height = flash.Lib.current.height;
-	    flash.Lib.current.addChildAt(textField, 0); // Make it be behind.
+
+	    flash.Lib.current.addChild(textField);
+            flash.Lib.current.addChild(charBuffer);
 
             onResize(null);
 
