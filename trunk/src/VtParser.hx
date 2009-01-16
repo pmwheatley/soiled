@@ -17,48 +17,6 @@
    The project's page is located here: http://code.google.com/p/soiled/
 */
 
-interface VtParserListener
-{
-    /*
-       Called when ESC <inter>* <cmd> has been received.
-     */
-    function vtpEscDispatch(cmd : Int, intermediateChars : String) : Void;
-
-    /*
-       Called when CSI <inter>* <parameters> <cmd> has been received.
-     */
-    function vtpCsiDispatch(cmd : Int,
-	                    intermediateChars : String,
-			    nParams : Int,
-			    params : Array<Int>) : Void;
-
-    /*
-       Called when a C0/C1 character has been received.
-     */
-    function vtpExecute(b : Int) : Void;
-
-    /*
-       Called to print a character on the screen.
-     */
-    function vtpPrint(c : Int) : Void;
-
-    /*
-       DCS handling starts with DcsHook, then DcsPut calls for each character,
-       finally DcsUnhook when done.
-     */
-    function vtpDcsHook(cmd : Int, intermediateChars : String, nParams : Int, params : Array<Int>) : Void;
-    function vtpDcsPut(c : Int) : Void;
-    function vtpDcsUnhook() : Void;
-
-    /*
-       OSC handling starts with OscStart, then OscPut calls for each character,
-       finally OscEnd when done.
-     */
-    function vtpOscStart() : Void;
-    function vtpOscPut(c : Int) : Void;
-    function vtpOscEnd() : Void;
-}
-
 enum EnuVtInputState
 {
     VIS_GROUND; // The initial state.
@@ -91,7 +49,7 @@ enum EnuVtInputState
    - The transitions to DCS_PASSTHROUGH will keep the character, to use by the
      hook action.
 
-   All commands are handled by some class implementing VtParserListener.
+   All commands are handled by some class implementing IVtParserListener.
  */
 class VtParser
 {
@@ -100,7 +58,7 @@ class VtParser
 
     private var inputState : EnuVtInputState;
 
-    private var listener : VtParserListener;
+    private var listener : IVtParserListener;
 
     private var intermediateChars : String;
 
@@ -108,7 +66,7 @@ class VtParser
 
     private var params : Array<Int>;
 
-    public function new(listener : VtParserListener)
+    public function new(listener : IVtParserListener)
     {
 	this.listener = listener;
 	params = new Array();
@@ -123,6 +81,9 @@ class VtParser
 
     public function handleReceivedByte(b : Int)
     {
+	// if(inputState != VIS_GROUND) {
+	    // trace("Processing char: " + b);
+	// }
 	switch(b) {
 	    case 0x18,
 		 0x1A,
@@ -160,10 +121,11 @@ class VtParser
 	}
     }
 
-    /* Private data below here */
+    /* Private functions below here */
 
-    private function enterState(state)
+    private function enterState(state : EnuVtInputState)
     {
+	// trace("Leaving state : " + inputState + " entering: " + state);
 	// Leave old state action
 	if(inputState == VIS_DCS_PASS) {
 	    listener.vtpDcsUnhook();
@@ -329,7 +291,7 @@ class VtParser
 	} else if(b >= 0x20 && b <= 0x2F) {
 	    collect(b);
 	    enterState(VIS_CSI_INTER);
-	} else if(b >= 0x00 && b >= 0x1F) {
+	} else if(b >= 0x00 && b <= 0x1F) {
 	    listener.vtpExecute(b);
 	} else if(b >= 0x30 && b <= 0x3B) { // 3A handled above
 	    param(b);
@@ -337,6 +299,7 @@ class VtParser
 	    // Ignore
 	} else {
 	    csiDispatch(b);
+	    enterState(VIS_GROUND);
 	}
     }
 
@@ -360,11 +323,15 @@ class VtParser
 	if(b == 0x07) {
 	    /* This is a deviation from Paul Williams' parser, needed for
 	       xterm emulation */
-	    listener.vtpOscPut(b);
+	    if(listener.vtpOscPut(b)) {
+		enterState(VIS_GROUND);
+	    }
 	} else if(b >= 0x00 && b <= 0x1F) {
 	    // Ignore
 	} else {
-	    listener.vtpOscPut(b);
+	    if(listener.vtpOscPut(b)) {
+		enterState(VIS_GROUND);
+	    }
 	}
     }
 
@@ -399,6 +366,7 @@ class VtParser
 	    collect(b);
 	} else {
 	    csiDispatch(b);
+	    enterState(VIS_GROUND);
 	}
     }
 
@@ -421,6 +389,7 @@ class VtParser
 	    enterState(VIS_CSI_PARAM);
 	} else {
 	    csiDispatch(b);
+	    enterState(VIS_GROUND);
 	}
     }
 
