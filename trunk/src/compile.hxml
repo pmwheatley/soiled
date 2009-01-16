@@ -3,8 +3,10 @@
 -swf-header 800:400:25:040303
 -main Client
 TelnetEventListener
+IVtParserListener
 Config
 CommandLineHandler
+VtParser
 VT100
 Telnet
 CompileTime

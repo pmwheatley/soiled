@@ -23,25 +23,17 @@ import flash.net.URLRequest;
 import flash.external.ExternalInterface;
 import flash.events.KeyboardEvent;
 
-enum EnuVTInputState {
-    VIS_NORMAL;
-    VIS_ESC;
-    VIS_PARAM;
-    VIS_PARAM2;
-    VIS_ESC_TWO_CHAR;
-}
-
 /*
-   VT100 parses input from the server and sends draw requests to the CharBuffer.
-   Input from the user is also parsed and send to the server when needed and
-   to the CharBuffer while it is being entered.
+   VT100 handles input from the server and sends draw requests to the CharBuffer.
+   Input from the user is sent to a CommandLineHandler.
 
    Despite its name, it is not a VT100 emulator. It only understands enough of it
-   to be usable for common MUDs.
+   to be usable for common MUDs and most curses programs.
 
 */
-class VT100 implements TelnetEventListener {
-
+class VT100 implements TelnetEventListener,
+            implements IVtParserListener
+{
     private inline static var UTF_ERROR = 0xFFFD;
 
     private var cb : CharBuffer;
@@ -54,15 +46,7 @@ class VT100 implements TelnetEventListener {
 
     private var localEcho : Bool;
 
-    private var inputState : EnuVTInputState;
-
-    private var receivedEsc : StringBuf;
-
     private var tabStops : Array<Bool>;
-
-    // If a two character escape sequence is received, the
-    // first char is stored here.
-    private var escFirstChar : Int;
 
     /* If the received charset is UTF-8 */
     private var utfEnabled : Bool;
@@ -103,11 +87,13 @@ class VT100 implements TelnetEventListener {
 
     private var beepSound : Sound;
 
+    private var vtParser : VtParser;
 
     public function new(sendByte : Int -> Void, charBuffer : CharBuffer)
     {
 	try {
-	    this.cb = charBuffer;
+	    vtParser = new VtParser(this);
+	    cb = charBuffer;
 	    newPromptString = new StringBuf();
 	    oldPromptAttribute = new Array<Int>();
 	    newPromptAttribute = new Array<Int>();
@@ -127,6 +113,16 @@ class VT100 implements TelnetEventListener {
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
+    }
+
+    public function handleKey(e : KeyboardEvent)
+    {
+	clh.handleKey(e);
+    }
+
+    public function doPaste(s : String)
+    {
+	clh.doPaste(s);
     }
 
     public function onResize()
@@ -160,6 +156,28 @@ class VT100 implements TelnetEventListener {
 	// XXX
     }
 
+    public function onDisconnect()
+    {
+	setColoursDefault();
+	oldPromptString = "";
+	cb.setCursorVisibility(true);
+    }
+
+    public function reset()
+    {
+	localEcho = true;
+	vtParser.reset();
+
+	cb.setCursorVisibility(true);
+	clh.reset();
+
+	handle_RIS();
+    }
+
+    /**********************************************************************/
+    /* From TelnetEventListener                                           */
+    /**********************************************************************/
+
     // Appends local text.
     public function appendText(s : String)
     {
@@ -167,11 +185,63 @@ class VT100 implements TelnetEventListener {
 	cb.setExtraCurs(cb.getCursX(), cb.getCursY());
     }
 
+    public function onReceiveByte(b : Int)
+    {
+	newByte(b);
+    }
+
+    // First newByte is called until all currently available
+    // bytes have been sent over, then flush() is called
+    // to make it appear on the screen.
+    public function flush()
+    {
+	cb.endUpdate();
+	if(gotPreviousInput) {
+	    gotPreviousInput = false;
+	    if(outputAfterPrompt > 0) {
+		promptTimer.reset();
+		promptTimer.start();
+		promptWaiting = true;
+		// trace("Waiting for prompt");
+	    }
+	}
+    }
+
+    // Called when everything from the start of the line to the
+    // current position should be considered a prompt.
+    // There should also be some timer that calls this method if
+    // the mud doesn't support EOR handling...
+    public function onPromptReception()
+    {
+	gotPrompt_(false);
+    }
+
     public function setUtfEnabled(on : Bool)
     {
 	utfEnabled = on;
 	clh.setUtfCharSet(on);
     }
+
+
+    public function changeServerEcho(remoteEcho : Bool)
+    {
+	this.localEcho = ! remoteEcho;
+	clh.setCharByChar(remoteEcho);
+    }
+
+    public function getColumns()
+    {
+	return cb.getWidth();
+    }
+
+    public function getRows()
+    {
+	return cb.getHeight();
+    }
+
+    /******************************************************************/
+    /* Private functions below here (and Listener implementations...) */
+    /******************************************************************/
 
     private function translateCharset(b : Int) : Int
     {
@@ -208,50 +278,44 @@ class VT100 implements TelnetEventListener {
 	}
     }
 
-    private function handle_CHA(params : String)
+
+    /********************************************/
+    /* Character sequence implementations below */
+    /********************************************/
+
+    private function handle_CHA(params : Array<Int>)
     {
-	var col = 1;
-	if(params.length > 0) {
-	    var s = params.split(";");
-	    col = Std.parseInt(s[0]);
-	    if(col < 1) col = 1;
-	}
+	var col = params[0];
+	if(col < 1) col = 1;
 	col -= 1;
 	if(col >= cb.getWidth()) col = cb.getWidth()-1;
 	cb.setCurs(col, cb.getCursY());
     }
 
-    private function handle_CNL(params : String)
+    private function handle_CNL(params : Array<Int>)
     {
 	cb.setCurs(0, cb.getCursY());
 	handle_CUD(params);
     }
 
-    private function handle_CPL(params : String)
+    private function handle_CPL(params : Array<Int>)
     {
 	cb.setCurs(0, cb.getCursY());
 	handle_CUU(params);
     }
 
-    private function handle_CUP(params : String)
+    private function handle_CUP(params : Array<Int>)
     {
-	var s = params.split(";");
-	var col = 1;
-	var row = 1;
-	if(s.length > 0) {
-	    row = Std.parseInt(s[0]);
-	    if(row < 1) row = 1;
-	    if(s.length > 1) {
-		col = Std.parseInt(s[1]);
-		if(col < 1) col = 1;
-	    }
-	}
+	var row = params[0];
+	var col = params[1];
+	if(row < 1) row = 1;
+	if(col < 1) col = 1;
 	cb.setCurs(col-1, row-1);
     }
 
-    private function handle_CUD(params : String)
+    private function handle_CUD(params : Array<Int>)
     {
-	var param = Std.parseInt(params);
+	var param = params[0];
 	if(param < 1) param = 1;
 	var row = cb.getCursY() + param;
 	if(row > cb.getHeight()) row = cb.getHeight();
@@ -260,18 +324,18 @@ class VT100 implements TelnetEventListener {
 	// TODO handle margins.
     }
 
-    private function handle_CUB(params : String)
+    private function handle_CUB(params : Array<Int>)
     {
-	var param = Std.parseInt(params);
+	var param = params[0];
 	if(param < 1) param = 1;
 	var col = cb.getCursX() - param;
 	if(col < 0) col = 0;
 	cb.setCurs(col, cb.getCursY());
     }
 
-    private function handle_CUF(params : String)
+    private function handle_CUF(params : Array<Int>)
     {
-	var param = Std.parseInt(params);
+	var param = params[0];
 	if(param < 1) param = 1;
 	var col = cb.getCursX() + param;
 	if(col > cb.getWidth()) col = cb.getWidth();
@@ -279,9 +343,9 @@ class VT100 implements TelnetEventListener {
 	// trace("CUF pos: " + (cb.getCursX()+1) + "," + (cb.getCursY()+1));
     }
 
-    private function handle_CUU(params : String)
+    private function handle_CUU(params : Array<Int>)
     {
-	var param = Std.parseInt(params);
+	var param = params[0];
 	if(param < 1) param = 1;
 	var row = cb.getCursY() - param;
 	if(row < 0) row = 0;
@@ -289,9 +353,9 @@ class VT100 implements TelnetEventListener {
 	// TODO handle margins.
     }
 
-    private function handle_DCH(params : String)
+    private function handle_DCH(params : Array<Int>)
     {
-	var charsToMove = Std.parseInt(params);
+	var charsToMove = params[0];
 	if(charsToMove < 1) charsToMove = 1;
 
 	var x = cb.getCursX();
@@ -300,7 +364,8 @@ class VT100 implements TelnetEventListener {
 
 	if(x + charsToMove >= columns) {
 	    // Just erase.
-	    handle_EL("0");
+	    params[0] = 0;
+	    handle_EL(params);
 	} else {
 	    for(i in x ... columns-charsToMove) {
 		cb.copyChar(i+charsToMove, y, i, y);
@@ -324,19 +389,10 @@ class VT100 implements TelnetEventListener {
 	savedCursY = cb.getCursY();
     }
 
-    private function handle_DECSTBM(params : String)
+    private function handle_DECSTBM(params : Array<Int>)
     {
-	var from = 0;
-	var to = 0;
-	if(params.length > 0) {
-	    var s = params.split(";");
-	    if(s.length > 0) {
-		from = Std.parseInt(s[0]);
-		if(s.length > 1) {
-		  to = Std.parseInt(s[1]);
-		}
-	    }
-	}
+	var from = params[0];
+	var to = params[1];
 	// trace("DECSTBM: params=" + params + " from=" + from + " to=" + to);
 	if(from < 1) from = 1;
 	if(to < 1 || to > cb.getHeight() ) to = 10001;
@@ -358,10 +414,10 @@ class VT100 implements TelnetEventListener {
 	clh.setApplicationKeypad(false);
     }
 
-    private function handle_DA(params : String)
+    private function handle_DA(inter : String)
     {
-	if(params.length>0) {
-	    if(params.charAt(0) == ">") {
+	if(inter.length>0) {
+	    if(inter.charAt(0) == ">") {
 		// Secondary DA.
 		sendByte(27); // ESC
 		sendByte(91); // [
@@ -375,9 +431,9 @@ class VT100 implements TelnetEventListener {
 	send_DA();
     }
 
-    private function handle_DL(params : String)
+    private function handle_DL(params : Array<Int>)
     {
-	var linesToMove = Std.parseInt(params);
+	var linesToMove = params[0];
 	if(linesToMove < 1) linesToMove = 1;
 
 	var scrollTop = cb.getTopMargin();
@@ -413,13 +469,9 @@ class VT100 implements TelnetEventListener {
 	}
     }
 
-    private function handle_ED(params : String)
+    private function handle_ED(params : Array<Int>)
     {
-	var s = params.split(";");
-	var param = 0;
-	if(s.length > 0) {
-	    param = Std.parseInt(s[0]);
-	}
+	var param = params[0];
 	switch(param) {
 	    case 0:
 		// From here to end.
@@ -455,13 +507,9 @@ class VT100 implements TelnetEventListener {
 	}
     }
 
-    private function handle_EL(params : String)
+    private function handle_EL(params : Array<Int>)
     {
-	var s = params.split(";");
-	var param = 0;
-	if(s.length > 0) {
-	    param = Std.parseInt(s[0]);
-	}
+	var param = params[0];
 	switch(param) {
 	    case 0:
 		// From here to right.
@@ -486,7 +534,7 @@ class VT100 implements TelnetEventListener {
 		    cb.printCharAt(32, x1, y);
 		}
 	    default:
-		trace("ED Mode not implemented yet: " + param);
+		trace("EL Mode not implemented yet: " + param);
 	}
     }
 
@@ -495,20 +543,17 @@ class VT100 implements TelnetEventListener {
 	tabStops[cb.getCursX()] = true;
     }
 
-    private function handle_ICH(params : String)
+    private function handle_ICH(params : Array<Int>)
     {
-	var s = params.split(";");
-	var charsToMove = 1;
-	if(params.length > 0) {
-	    charsToMove = Std.parseInt(s[0]);
-	    if(charsToMove < 1) charsToMove = 1;
-	}
+	var charsToMove = params[0];
+	if(charsToMove < 1) charsToMove = 1;
 	var columns = cb.getWidth();
 	var x = cb.getCursX();
 
 	if(x + charsToMove >= columns) {
 	    // Just erase.
-	    handle_EL("0");
+	    params[0] = 0;
+	    handle_EL(params);
 	} else {
 	    var y = cb.getCursY();
 	    for(i in 0 ... columns-x-charsToMove) {
@@ -519,13 +564,12 @@ class VT100 implements TelnetEventListener {
 	    for(i in 0 ... charsToMove)
 		cb.printCharAt(32, x+i, y);
 	}
-
     }
 
     // Insert Line(s).
-    private function handle_IL(params : String)
+    private function handle_IL(params : Array<Int>)
     {
-	var linesToMove = Std.parseInt(params);
+	var linesToMove = params[0];
 	if(linesToMove < 1) linesToMove = 1;
 
 	var scrollTop = cb.getTopMargin();
@@ -560,39 +604,13 @@ class VT100 implements TelnetEventListener {
 	}
     }
 
-    /* Operating System Controls */
-    private function handle_OCS_sequence()
+    private function handle_REP(params : Array<Int>)
     {
-	var params = this.receivedEsc.toString();
-	var s = params.split(";");
-	if(s.length >= 2) {
-	    var cmd = s[0];
-	    if(cmd == "0") {
-		// Change icon name and title.
-		// trace("Change icon name and title to: " + s[1]);
-		callExternal("ChangeTitle", s[1]);
-	    } else if(cmd == "1") {
-		// Change icon name.
-		// trace("Change icon name to: " + s[1]);
-	    } else if(cmd == "2") {
-		// Change title.
-		// trace("Change title to: " + s[1]);
-		callExternal("ChangeTitle", s[1]);
-	    } else {
-		trace("Unknown OCS sequence: " + params);
-	    }
-	} else {
-	    trace("Unknown OCS sequence: " + params);
-	}
-    }
-
-    private function handle_REP(params : String)
-    {
-	var charsToRep = Std.parseInt(params);
+	var charsToRep = params[0];
 	if(charsToRep < 1) charsToRep = 1;
 
 	for(i in 0...charsToRep) {
-	    newByte(latestPrintableChar);
+	    vtpPrint(latestPrintableChar);
 	}
     }
 
@@ -605,7 +623,9 @@ class VT100 implements TelnetEventListener {
 	if(cursY == firstRow-1) {
 	    cursY++;
 	    cb.setCurs(cb.getCursX(), cursY);
-	    handle_IL("1");
+	    var params = new Array<Int>();
+	    params.push(1);
+	    handle_IL(params);
 	} else {
 	    if(cursY < 0) {
 		// Wrap around.
@@ -615,7 +635,6 @@ class VT100 implements TelnetEventListener {
 	}
 	cb.setExtraCurs(cb.getCursX(), cb.getCursY());
     }
-
 
     private function handle_RIS()
     {
@@ -634,27 +653,25 @@ class VT100 implements TelnetEventListener {
 	oldPromptString = "";
     }
 
-    private function handle_SGR()
+    private function handle_SGR(nParams : Int, params : Array<Int>)
     {
-	var params = this.receivedEsc.toString();
-	if(params.length == 0) {
+	if(nParams == 0) {
 	    setColoursDefault();
 	} else {
-	    var s = params.split(";");
 	    var i = 0;
-	    while(i < s.length) {
-		if(i + 3 <= s.length &&
-			s[i] == "38" && 
-			s[i+1] == "5") {
+	    while(i < nParams) {
+		if(i + 3 <= nParams &&
+			params[i] == 38 && 
+			params[i+1] == 5) {
 		    i += 2;
-		    cb.setFgColour(Std.parseInt(s[i]));
-		} else if(i + 3 <= s.length &&
-			s[i] == "48" && 
-			s[i+1] == "5") {
+		    cb.setFgColour(params[i]);
+		} else if(i + 3 <= nParams &&
+			params[i] == 48 && 
+			params[i+1] == 5) {
 		    i += 2;
-		    cb.setBgColour(Std.parseInt(s[i]));
+		    cb.setBgColour(params[i]);
 		} else {
-		    var b = Std.parseInt(s[i]);
+		    var b = params[i];
 		    if(b >= 30 && b <= 37) {
 			cb.setFgColour(b-30);
 		    } else if(b >= 40 && b <= 47) {
@@ -684,112 +701,85 @@ class VT100 implements TelnetEventListener {
 	}
     }
 
-    private function handle_RM(mode : String)
+    private function handle_RM(inter : String, nParams : Int, params : Array<Int>)
     {
-	if(mode.length == 0) return;
-	if(mode.charAt(0) == "?") {
-	    // DEC Private Mode Set.
-	    mode = mode.substr(1);
-	    var s = mode.split(";");
-	    for(i in 0 ... s.length) {
-		switch(s[i]) {
-		    case "1":
+	if(inter == "?") {
+	    // DEC Private Mode Reset.
+	    for(i in 0 ... nParams) {
+		switch(params[i]) {
+		    case 1:
 			clh.setApplicationCursorKeys(false);
-		    case "4":
+		    case 4:
 			// SET jump-scroll mode.
-		    case "7":
+		    case 7:
 			// reset DECAWM - auto wrap.
-		    case "25":
+		    case 25:
 			cb.setCursorVisibility(false);
-		    case "47":
+		    case 47:
 			// trace("Use normal screen.");
-		    case "1049":
+		    case 1049:
 			// trace("Use normal screen.");
 		    default:
-			trace("Unknown DECRST-setting: " + s[i]);
+			trace("Unknown DECRST-setting: " + params[i]);
 		}
 	    }
 	} else {
 	    // Reset Mode.
-	    var s = mode.split(";");
-	    for(i in 0 ... s.length) {
-		switch(s[i]) {
-		    case "4":
+	    for(i in 0 ... nParams) {
+		switch(params[i]) {
+		    case 4:
 			// SET jump-scroll mode.
 		    default:
-			trace("Unknown RM-setting: " + s[i]);
+			trace("Unknown RM-setting: " + params[i]);
 		}
 	    }
 	}
     }
 
-    private function handle_SM(mode : String)
+    private function handle_SM(inter : String, nParams : Int, params : Array<Int>)
     {
-	if(mode.length == 0) return;
-	if(mode.charAt(0) == "?") {
+	if(inter == "?") {
 	    // DEC Private Mode Set.
-	    mode = mode.substr(1);
-	    var s = mode.split(";");
-	    for(i in 0 ... s.length) {
-		switch(s[i]) {
-		    case "1":
+	    for(i in 0 ... nParams) {
+		switch(params[i]) {
+		    case 1:
 			clh.setApplicationCursorKeys(true);
-		    case "4":
+		    case 4:
 			// SET smooth scroll mode.
-		    case "7":
+		    case 7:
 			// reset DECAWM - auto wrap.
-		    case "25":
+		    case 25:
 			cb.setCursorVisibility(true);
-		    case "47":
+		    case 47:
 			// trace("Use alt screen");
-		    case "1049":
+		    case 1049:
 			// trace("Use alt screen");
 		    default:
-			trace("Unknown DECSET-setting: " + s[i]);
+			trace("Unknown DECSET-setting: " + params[i]);
 		}
 	    }
 	} else {
 	    // Set Mode.
-	    var s = mode.split(";");
-	    for(i in 0 ... s.length) {
-		switch(s[i]) {
-		    case "4":
+	    for(i in 0 ... nParams) {
+		switch(params[i]) {
+		    case 4:
 			// SET smooth scroll mode.
 		    default:
-			trace("Unknown SM-setting: " + s[i]);
+			trace("Unknown SM-setting: " + params[i]);
 		}
 	    }
 	}
     }
 
-    private function handle_TBC(params : String)
+    private function handle_TBC(params : Array<Int>)
     {
-	var p = Std.parseInt(params);
+	var p = params[0];
 	if(p == 3) {
 	    for(i in 0...tabStops.length)
 		tabStops[i] = false;
-	} else {
+	} else if(p == 0) {
 	    tabStops[cb.getCursX()] = false;
 	}
-    }
-
-
-    public function reset()
-    {
-	localEcho = true;
-	this.inputState = VIS_NORMAL;
-
-	cb.setCursorVisibility(true);
-	clh.reset();
-
-	handle_RIS();
-    }
-
-    public function onDisconnect()
-    {
-	setColoursDefault();
-	oldPromptString = "";
-	cb.setCursorVisibility(true);
     }
 
     private function send_DA()
@@ -802,7 +792,203 @@ class VT100 implements TelnetEventListener {
     }
 
 
-    private function newByteHandleNormal(b : Int)
+    /**********************************************************/
+    /* VtParserListener funcions                              */
+    /**********************************************************/
+
+    private function getEmptyParams()
+    {
+	var ret = new Array();
+	for(i in 0...16) {
+	    ret.push(0);
+	}
+	return ret;
+    }
+
+    private function unknownCmd(cmd : Int, intermediateChars : String)
+    {
+	trace("Unknown ESC command: " + intermediateChars + " " + cmd);
+    }
+
+    public function vtpEscDispatch(cmd : Int, intermediateChars : String) : Void
+    {
+	if(intermediateChars == "%") {
+	    if(cmd == 64) { // @ -- Change to latin-1
+		if(utfEnabled) {
+		    utfEnabled = false;
+		    clh.setUtfCharSet(false);
+		}
+	    } else if(cmd == 71) { // G -- Change to UTF-8
+		if(!utfEnabled) {
+		    utfEnabled = true;
+		    clh.setUtfCharSet(true);
+		    utfState = 0;
+		}
+	    } else unknownCmd(cmd, intermediateChars);
+	} else if(intermediateChars == "(") {
+	    // Designate G0 character set.
+	    charsets[0] = cmd;
+	    return;
+	} else if(intermediateChars == ")") {
+	    // Designate G1 character set.
+	    charsets[1] = cmd;
+	    return;
+	} else if(intermediateChars == "*") {
+	    // Designate G2 character set.
+	    charsets[2] = cmd;
+	    return;
+	} else if(intermediateChars == "+") {
+	    // Designate G3 character set.
+	    charsets[3] = cmd;
+	    return;
+	} else if(intermediateChars == "") {
+	    switch(cmd) {
+		case 55: // 7
+		    handle_DECSC();
+		case 56: // 8
+		    handle_DECRC();
+		case 61: // =
+		    handle_DECPAM();
+		case 62: // >
+		    handle_DECPNM();
+		case 65: // A
+		    handle_CUU(getEmptyParams());
+		case 66: // B
+		    handle_CUD(getEmptyParams());
+		case 67: // C
+		    handle_CUF(getEmptyParams());
+		case 68: // D
+		    handle_CUB(getEmptyParams());
+		case 69: // E
+		    vtpExecute(13);
+		    vtpExecute(10);
+		case 70: // F
+		    handle_CPL(getEmptyParams());
+		case 71: // G
+		    handle_CHA(getEmptyParams());
+		case 72: // H
+		    handle_HTS();
+		case 77: // M
+		    handle_RI();
+		case 90: // Z
+		    send_DA();
+		case 99: // c
+		    handle_RIS();
+		default:
+		    unknownCmd(cmd, intermediateChars);
+	    }
+	} else unknownCmd(cmd, intermediateChars);
+    }
+
+    public function vtpCsiDispatch(cmd : Int,
+				   intermediateChars : String,
+				   nParams : Int,
+				   params : Array<Int>) : Void
+    {
+	maybeRemovePrompt();
+	switch(cmd) {
+	    case 64: // @
+		handle_ICH(params);
+	    case 65: // A
+		handle_CUU(params);
+	    case 66: // B
+		handle_CUD(params);
+	    case 67: // C
+		handle_CUF(params);
+	    case 68: // D
+		handle_CUB(params);
+	    case 69: // E
+		handle_CNL(params);
+	    case 70: // F
+		handle_CPL(params);
+	    case 71: // G
+		handle_CHA(params);
+	    case 72: // H
+		handle_CUP(params);
+	    case 74: // J
+		handle_ED(params);
+	    case 75: // K
+		handle_EL(params);
+	    case 76: // L
+		handle_IL(params);
+	    case 77: // M
+		handle_DL(params);
+	    case 80: // P
+		handle_DCH(params);
+	    case 98: // b
+		handle_REP(params);
+	    case 99: // c
+		handle_DA(intermediateChars);
+	    case 103: // g
+		handle_TBC(params);
+	    case 104: // h
+		handle_SM(intermediateChars, nParams, params);
+	    case 108: // l
+		handle_RM(intermediateChars, nParams, params);
+	    case 109: // m
+		handle_SGR(nParams, params);
+	    case 114: // r
+		handle_DECSTBM(params);
+	    default:
+		trace("Unknown ESC-seq:" + intermediateChars + " " + cmd + " nParams=" + nParams + " params=" + params);
+	}
+    }
+
+    public function vtpDcsHook(cmd : Int, intermediateChars : String, nParams : Int, params : Array<Int>) : Void
+    {
+	// TODO
+    }
+
+    public function vtpDcsPut(c : Int) : Void
+    {
+	// TODO
+    }
+
+    public function vtpDcsUnhook() : Void
+    {
+	// TODO
+    }
+
+    private var oscString : String;
+
+    public function vtpOscStart() : Void
+    {
+	oscString = "";
+    }
+
+    public function vtpOscPut(c : Int) : Bool
+    {
+	if(c == 7) return true;
+	oscString = oscString + String.fromCharCode(c);
+	return false;
+    }
+
+    public function vtpOscEnd() : Void
+    {
+	var params = oscString;
+	var s = params.split(";");
+	if(s.length >= 2) {
+	    var cmd = s[0];
+	    if(cmd == "0") {
+		// Change icon name and title.
+		// trace("Change icon name and title to: " + s[1]);
+		callExternal("ChangeTitle", s[1]);
+	    } else if(cmd == "1") {
+		// Change icon name.
+		// trace("Change icon name to: " + s[1]);
+	    } else if(cmd == "2") {
+		// Change title.
+		// trace("Change title to: " + s[1]);
+		callExternal("ChangeTitle", s[1]);
+	    } else {
+		trace("Unknown OCS sequence: " + params);
+	    }
+	} else {
+	    trace("Unknown OCS sequence: " + params);
+	}
+    }
+
+    public function vtpExecute(b : Int)
     {
 	switch(b) {
 	    case 0: // NUL
@@ -833,194 +1019,29 @@ class VT100 implements TelnetEventListener {
 		charset = 1;
 	    case 15: // CTRL-O, Shift In -> Switch to G0 character set.
 		charset = 0;
-	    case 27: // ESC
-		this.inputState = VIS_ESC;
 	    case 0x8D: // RI
 		maybeRemovePrompt();
 		handle_RI();
-	    case 0x9B: // CSI
-		this.inputState = VIS_PARAM;
-	    case 0x9D: // OSC
-		this.inputState = VIS_PARAM2;
-	    default:
-		if(b >= 0 && b < 32) return;
-		maybeRemovePrompt();
-		b = translateCharset(b);
-		newPromptString.addChar(b);
-		newPromptAttribute.push(cb.getAttributes());
-		latestPrintableChar = b;
-		cb.printChar(b);
 	}
     }
-
-    private function newByteHandleEscape(b : Int)
+    
+    public function vtpPrint(b : Int)
     {
-	inputState = VIS_NORMAL;
-	switch(b) {
-	    case 91: // [
-		this.receivedEsc = new StringBuf();
-		this.inputState = VIS_PARAM;
-	    case 93: // ]
-		this.receivedEsc = new StringBuf();
-		this.inputState = VIS_PARAM2;
-	    case 37: // %
-		escFirstChar = b; this.inputState = VIS_ESC_TWO_CHAR;
-	    case 40: // (
-		escFirstChar = b; this.inputState = VIS_ESC_TWO_CHAR;
-	    case 41: // )
-		escFirstChar = b; this.inputState = VIS_ESC_TWO_CHAR;
-	    case 55: // 7
-		handle_DECSC();
-	    case 56: // 8
-		handle_DECRC();
-	    case 61: // =
-		handle_DECPAM();
-	    case 62: // >
-		handle_DECPNM();
-	    case 65: // A
-		handle_CUU("");
-	    case 66: // B
-		handle_CUD("");
-	    case 67: // C
-		handle_CUF("");
-	    case 68: // D
-		handle_CUB("");
-	    case 69: // E
-		newByte(13);
-		newByte(10);
-	    case 70: // F
-		handle_CPL("");
-	    case 71: // G
-		handle_CHA("");
-	    case 72: // H
-		handle_HTS();
-	    case 77: // M
-		handle_RI();
-	    case 90: // Z
-		send_DA();
-	    case 99: // c
-		handle_RIS();
-	    default:
-		trace("No [ following ESC! " + b);
-		this.inputState = VIS_NORMAL;
-		newByte(b);
-	}
+	maybeRemovePrompt();
+	b = translateCharset(b);
+	newPromptString.addChar(b);
+	newPromptAttribute.push(cb.getAttributes());
+	latestPrintableChar = b;
+	cb.printChar(b);
     }
 
-    private function newByteHandleCharAfterEscape(b : Int)
-    {
-	inputState = VIS_NORMAL;
-	if(escFirstChar == 37) {
-	    if(b == 64) { // @ -- Change to latin-1
-		if(utfEnabled) {
-		    utfEnabled = false;
-		    clh.setUtfCharSet(false);
-		}
-		return;
-	    } else if(b == 71) { // G -- Change to UTF-8
-		if(!utfEnabled) {
-		    utfEnabled = true;
-		    clh.setUtfCharSet(true);
-		    utfState = 0;
-		}
-		return;
-	    }
-	} else if(escFirstChar == 40) { // (
-	    // Designate G0 character set.
-	    charsets[0] = b;
-	    return;
-	} else if(escFirstChar == 41) { // )
-	    // Designate G1 character set.
-	    charsets[1] = b;
-	    return;
-	} else if(escFirstChar == 42) { // *
-	    // Designate G2 character set.
-	    charsets[2] = b;
-	    return;
-	} else if(escFirstChar == 43) { // +
-	    // Designate G3 character set.
-	    charsets[3] = b;
-	    return;
-	}
-	trace("Unknown char following ESC: " + escFirstChar + " " + b);
-	newByte(escFirstChar);
-	newByte(b);
-    }
+    /******************************************************/
+    /* End of IVtParserListener implementation            */
+    /******************************************************/
 
-    private function newByteHandleParameter2AfterEscape(b : Int)
-    {
-	if(b < 32 || (b >= 127 && b < 160)) {
-	    inputState = VIS_NORMAL;
-	    /* 7-bit ST == ESC '\' too, but that isn't handled... */
-	    if(b == 7 || b == 0x9c) { // BELL or 8-bit ST.
-		handle_OCS_sequence();
-	    } else {
-		trace("Unknown OCS-seq:" + this.receivedEsc.toString() + "  and " + b);
-	    }
-	} else {
-	    this.receivedEsc.addChar(b);
-	}
-    }
-
-    private function newByteHandleParameterAfterEscape(b : Int)
-    {
-	if((b >= 48 && b <= 57) ||
-	   (b == 59) ||
-	   (b == 62) ||
-	   (b == 63)) {
-	    this.receivedEsc.addChar(b);
-	} else {
-	    inputState = VIS_NORMAL;
-	    maybeRemovePrompt();
-	    switch(b) {
-		case 64: // @
-		    handle_ICH(this.receivedEsc.toString());
-		case 65: // A
-		    handle_CUU(this.receivedEsc.toString());
-		case 66: // B
-		    handle_CUD(this.receivedEsc.toString());
-		case 67: // C
-		    handle_CUF(this.receivedEsc.toString());
-		case 68: // D
-		    handle_CUB(this.receivedEsc.toString());
-		case 69: // E
-		    handle_CNL(this.receivedEsc.toString());
-		case 70: // F
-		    handle_CPL(this.receivedEsc.toString());
-		case 71: // G
-		    handle_CHA(this.receivedEsc.toString());
-		case 72: // H
-		    handle_CUP(this.receivedEsc.toString());
-		case 74: // J
-		    handle_ED(this.receivedEsc.toString());
-		case 75: // K
-		    handle_EL(this.receivedEsc.toString());
-		case 76: // L
-		    handle_IL(this.receivedEsc.toString());
-		case 77: // M
-		    handle_DL(this.receivedEsc.toString());
-		case 80: // P
-		    handle_DCH(this.receivedEsc.toString());
-		case 98: // b
-		    handle_REP(this.receivedEsc.toString());
-		case 99: // c
-		    handle_DA(this.receivedEsc.toString());
-		case 103: // g
-		    handle_TBC(this.receivedEsc.toString());
-		case 104: // h
-		    handle_SM(this.receivedEsc.toString());
-		case 108: // l
-		    handle_RM(this.receivedEsc.toString());
-		case 109: // m
-		    handle_SGR();
-		case 114: // r
-		    handle_DECSTBM(this.receivedEsc.toString());
-		default:
-		    trace("ESC-seq:" + b + " : " + this.receivedEsc.toString());
-	    }
-	}
-    }
-
+    /*
+       Decode UTF-8 encoding, then call the VtParser.
+     */
     private function newByte(b : Int)
     {
 	try {
@@ -1096,41 +1117,13 @@ class VT100 implements TelnetEventListener {
 		    }
 		}
 	    }
-	    switch(this.inputState) {
-		case VIS_NORMAL:
-		    newByteHandleNormal(b);
-		case VIS_ESC:
-		    newByteHandleEscape(b);
-		case VIS_ESC_TWO_CHAR:
-		    newByteHandleCharAfterEscape(b);
-		case VIS_PARAM:
-		    newByteHandleParameterAfterEscape(b);
-		case VIS_PARAM2:
-		    newByteHandleParameter2AfterEscape(b);
-	    }
+	    vtParser.handleReceivedByte(b);
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
     }
 
-    // First newByte is called until all currently available
-    // bytes have been sent over, then flush() is called
-    // to make it appear on the screen.
-    public function flush()
-    {
-	cb.endUpdate();
-	if(gotPreviousInput) {
-	    gotPreviousInput = false;
-	    if(outputAfterPrompt > 0) {
-		promptTimer.reset();
-		promptTimer.start();
-		promptWaiting = true;
-		// trace("Waiting for prompt");
-	    }
-	}
-    }
-
-    public function gotPrompt_(isTimeout : Bool)
+    private function gotPrompt_(isTimeout : Bool)
     {
 	// trace("gotPrompt");
 	promptTimer.stop();
@@ -1168,40 +1161,6 @@ class VT100 implements TelnetEventListener {
 	if(promptWaiting) gotPrompt_(true);
     }
 
-    /* From TelnetEventListener */
-    public function onReceiveByte(b : Int)
-    {
-	newByte(b);
-    }
-
-    // Called when everything from the start of the line to the
-    // current position should be considered a prompt.
-    // There should also be some timer that calls this method if
-    // the mud doesn't support EOR handling...
-    public function onPromptReception()
-    {
-	gotPrompt_(false);
-    }
-
-    /* From TelnetEventListener */
-    public function changeServerEcho(remoteEcho : Bool)
-    {
-	this.localEcho = ! remoteEcho;
-	clh.setCharByChar(remoteEcho);
-    }
-
-    /* From TelnetEventListener */
-    public function getColumns()
-    {
-	return cb.getWidth();
-    }
-
-    /* From TelnetEventListener */
-    public function getRows()
-    {
-	return cb.getHeight();
-    }
-
     private function setColoursDefault()
     {
 	cb.setDefaultAttributes();
@@ -1237,16 +1196,6 @@ class VT100 implements TelnetEventListener {
 	    }
 	    promptHasBeenDrawn = false;
 	}
-    }
-
-    public function handleKey(e : KeyboardEvent)
-    {
-	clh.handleKey(e);
-    }
-
-    public function doPaste(s : String)
-    {
-	clh.doPaste(s);
     }
 
     private inline function isCharByCharMode() : Bool

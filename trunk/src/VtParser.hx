@@ -84,40 +84,44 @@ class VtParser
 	// if(inputState != VIS_GROUND) {
 	    // trace("Processing char: " + b);
 	// }
-	switch(b) {
-	    case 0x18,
-		 0x1A,
-		 0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,
-		 0x88,0x89,0x8A,0x8B,0x8C,0x8D,0x8E,0x8F,
-		 0x91,0x92,0x93,0x94,0x95,0x96,0x97,0x99,
-		 0x9A:
-	        enterState(VIS_GROUND);
-		listener.vtpExecute(b);
-	    case 0x1B: enterState(VIS_ESC);
-	    case 0x90: enterState(VIS_DCS_ENTRY);
-	    case 0x98, 0x9E, 0x9F:
-		enterState(VIS_SOS_PM_APC_STRING);
-	    case 0x9B: enterState(VIS_CSI_ENTRY);
-	    case 0x9C: enterState(VIS_GROUND);
-	    case 0x9D: enterState(VIS_OSC_STRING);
-	    default:
-		switch(inputState)
-		{
-		    case VIS_GROUND: handleGroundState(b);
-		    case VIS_ESC_INTER: handleEscInter(b);
-		    case VIS_SOS_PM_APC_STRING: handleSosPmApcString(b);
-		    case VIS_ESC: handleEsc(b);
-		    case VIS_DCS_ENTRY: handleDcsEntry(b);
-		    case VIS_DCS_INTER: handleDcsInter(b);
-		    case VIS_CSI_PARAM: handleCsiParam(b);
-		    case VIS_DCS_IGNORE: handleDcsIgnore(b);
-		    case VIS_CSI_IGNORE: handleCsiIgnore(b);
-		    case VIS_OSC_STRING: handleOscString(b);
-		    case VIS_DCS_PARAM: handleDcsParam(b);
-		    case VIS_CSI_INTER: handleCsiInter(b);
-		    case VIS_CSI_ENTRY: handleCsiEntry(b);
-		    case VIS_DCS_PASS: handleDcsPass(b);
-		}
+	try {
+	    switch(b) {
+		case 0x18,
+		     0x1A,
+		     0x80,0x81,0x82,0x83,0x84,0x85,0x86,0x87,
+		     0x88,0x89,0x8A,0x8B,0x8C,0x8D,0x8E,0x8F,
+		     0x91,0x92,0x93,0x94,0x95,0x96,0x97,0x99,
+		     0x9A:
+		    enterState(VIS_GROUND);
+		    listener.vtpExecute(b);
+		case 0x1B: enterState(VIS_ESC);
+		case 0x90: enterState(VIS_DCS_ENTRY);
+		case 0x98, 0x9E, 0x9F:
+		    enterState(VIS_SOS_PM_APC_STRING);
+		case 0x9B: enterState(VIS_CSI_ENTRY);
+		case 0x9C: enterState(VIS_GROUND);
+		case 0x9D: enterState(VIS_OSC_STRING);
+		default:
+		    switch(inputState)
+		    {
+			case VIS_GROUND: handleGroundState(b);
+			case VIS_ESC_INTER: handleEscInter(b);
+			case VIS_SOS_PM_APC_STRING: handleSosPmApcString(b);
+			case VIS_ESC: handleEsc(b);
+			case VIS_DCS_ENTRY: handleDcsEntry(b);
+			case VIS_DCS_INTER: handleDcsInter(b);
+			case VIS_CSI_PARAM: handleCsiParam(b);
+			case VIS_DCS_IGNORE: handleDcsIgnore(b);
+			case VIS_CSI_IGNORE: handleCsiIgnore(b);
+			case VIS_OSC_STRING: handleOscString(b);
+			case VIS_DCS_PARAM: handleDcsParam(b);
+			case VIS_CSI_INTER: handleCsiInter(b);
+			case VIS_CSI_ENTRY: handleCsiEntry(b);
+			case VIS_DCS_PASS: handleDcsPass(b);
+		    }
+	    }
+	} catch(ex : Dynamic) {
+	    trace(ex);
 	}
     }
 
@@ -184,12 +188,14 @@ class VtParser
 	listener.vtpEscDispatch(b, intermediateChars);
     }
 
-    private function csiDispatch(b)
+    private function csiDispatch(b : Int)
     {
 	for(i in nParams...MAX_PARAMS) {
 	    params[i] = 0;
 	}
+	// trace("CsiDispatching: " + intermediateChars + " " + b + " nP=" + nParams + " P=" + params);
 	listener.vtpCsiDispatch(b, intermediateChars, nParams, params);
+	// trace("CsiDispatched");
     }
 
     private function handleGroundState(b : Int)
@@ -210,8 +216,8 @@ class VtParser
 	} else if(b == 0x7F) {
 	    // Ignore.
 	} else {
-	    escDispatch(b);
 	    enterState(VIS_GROUND);
+	    escDispatch(b);
 	}
     }
 
@@ -241,8 +247,8 @@ class VtParser
 	} else if(b >= 0x00 && b <= 0x1F) {
 	    listener.vtpExecute(b);
 	} else {
-	    escDispatch(b);
 	    enterState(VIS_GROUND);
+	    escDispatch(b);
 	}
     }
 
@@ -298,8 +304,8 @@ class VtParser
 	} else if(b == 0x7F) {
 	    // Ignore
 	} else {
-	    csiDispatch(b);
 	    enterState(VIS_GROUND);
+	    csiDispatch(b);
 	}
     }
 
@@ -365,8 +371,8 @@ class VtParser
 	} else if(b >= 0x20 && b <= 0x2F) {
 	    collect(b);
 	} else {
-	    csiDispatch(b);
 	    enterState(VIS_GROUND);
+	    csiDispatch(b);
 	}
     }
 
@@ -388,8 +394,8 @@ class VtParser
 	    collect(b);
 	    enterState(VIS_CSI_PARAM);
 	} else {
-	    csiDispatch(b);
 	    enterState(VIS_GROUND);
+	    csiDispatch(b);
 	}
     }
 
