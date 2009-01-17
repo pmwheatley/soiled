@@ -6,7 +6,6 @@
   * Application/Normal Keypad.
   * autowrap support.
   * xterm:ish mouse tracking.
-  * Fix resize so it doesn't keep sending the "new" screensize when the rows & heights are still the same.
   * Support copy & scrollback at the same time. Be able to select more than a screen of text.
   * Re-add support for double clicking when selecting and make it better (like xterm)
 
