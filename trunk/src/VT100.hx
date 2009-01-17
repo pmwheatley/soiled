@@ -134,10 +134,11 @@ class VT100 implements TelnetEventListener,
 	var hadDrawnPrompt = promptHasBeenDrawn;
 	if(hadDrawnPrompt) removePrompt();
 	else clh.removeInputString();
-	cb.resize();
+	var result = cb.resize();
 	if(hadDrawnPrompt) drawPrompt();
 	else clh.drawInputString();
 	cb.endUpdate();
+	return result;
     }
 
     public function onMouseDown(x : Int, y : Int, type : Int)
@@ -695,6 +696,10 @@ class VT100 implements TelnetEventListener,
 			cb.setFgColour(b-30);
 		    } else if(b >= 40 && b <= 47) {
 			cb.setBgColour(b-40);
+		    } else if(b >= 90 && b <= 97) {
+			cb.setFgColour(b-82);
+		    } else if(b >= 100 && b <= 107) {
+			cb.setBgColour(b-92);
 		    } else if(b == 0) {
 			setColoursDefault();
 		    } else if(b == 1) {

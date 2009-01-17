@@ -247,7 +247,7 @@ class CharBuffer extends Bitmap {
 	}
     }
 
-    public function resize()
+    public function resize() : Bool
     {
 	var w = Math.floor(this.width);
 	var h = Math.floor(this.height);
@@ -257,41 +257,53 @@ class CharBuffer extends Bitmap {
 	if(newColumns == columns &&
            newRows == rows &&
 	   w == this.bitmapData.width &&
-	   h == this.bitmapData.height) return;
+	   h == this.bitmapData.height) return false;
+
+	var newSize = newColumns != columns || newRows != rows;
 
 	beginUpdate();
 	removeSelection();
 
 	displayOffset = 0;
 
-	var newCharBuffer : Array<Int> = new Array();
-	var newAttrBuffer : Array<Int> = new Array();
-	newCharBuffer[newRows * newColumns -1] = 0;
-	newAttrBuffer[newRows * newColumns -1] = 0;
-	for(y in 0...newRows)
-	    for(x in 0...newColumns) {
+	var newCharBuffer : Array<Int> = null;
+	var newAttrBuffer : Array<Int> = null;
+	if(newSize) {
+	    newCharBuffer = new Array();
+	    newAttrBuffer = new Array();
+	    newCharBuffer[newRows * newColumns -1] = 0;
+	    newAttrBuffer[newRows * newColumns -1] = 0;
+	    for(y in 0...newRows)
+		for(x in 0...newColumns) {
 
-		if(y >= rows || x >= columns) {
-		    newAttrBuffer[x + y*newColumns]= 2 | ATT_UPDATED;
-		} else {
-		    newCharBuffer[x + y*newColumns] = charBuffer[x + y*columns];
-		    newAttrBuffer[x + y*newColumns] = attrBuffer[x + y*columns] | ATT_UPDATED;
+		    if(y >= rows || x >= columns) {
+			newAttrBuffer[x + y*newColumns]= 2 | ATT_UPDATED;
+		    } else {
+			newCharBuffer[x + y*newColumns] = charBuffer[x + y*columns];
+			newAttrBuffer[x + y*newColumns] = attrBuffer[x + y*columns] | ATT_UPDATED;
+		    }
 		}
-	    }
+	} else {
+	    for(y in 0...newRows)
+		for(x in 0...newColumns)
+		    attrBuffer[x + y*newColumns] |= ATT_UPDATED;
+	}
 
 	var nb = new BitmapData(w, h, false, colours[0]);
 	nb.lock();
-
 	this.bitmapData = nb;
 
-	columns = newColumns;
-	rows = newRows;
-	charBuffer = newCharBuffer;
-	attrBuffer = newAttrBuffer;
-	while(cursY_ >= rows) {
-	    cursY_--;
+	if(newSize) {
+	    columns = newColumns;
+	    rows = newRows;
+	    charBuffer = newCharBuffer;
+	    attrBuffer = newAttrBuffer;
+	    while(cursY_ >= rows) {
+		cursY_--;
+	    }
 	}
 	endUpdate();
+	return newSize;
     }
 
     public function beginSelect(x : Int, y : Int)

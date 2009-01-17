@@ -104,8 +104,7 @@ class Client {
     {
 	textField.width = charBuffer.width = flash.Lib.current.stage.stageWidth;
 	textField.height = charBuffer.height = flash.Lib.current.stage.stageHeight;
-	vt100.onResize();
-	if(telnet != null) {
+	if(vt100.onResize() && (telnet != null)) {
 	    telnet.sendNawsInfo();
 	}
     }
