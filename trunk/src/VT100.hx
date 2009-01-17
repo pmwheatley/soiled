@@ -46,8 +46,6 @@ class VT100 implements TelnetEventListener,
 
     private var localEcho : Bool;
 
-    private var tabStops : Array<Bool>;
-
     /* If the received charset is UTF-8 */
     private var utfEnabled : Bool;
 
@@ -60,15 +58,11 @@ class VT100 implements TelnetEventListener,
 
     private var charset : Int; // 0 or 1 for G0 and G1.
     private var charsets : Array<Int>; // Current designation for G0 .. G3
+    private var nextCharacterCharset : Int;
 
     var savedAttribs : Int;
     var savedCursX : Int;
     var savedCursY : Int;
-
-    // Used to store the latest printable character, so it may be repeated by REP.
-    var latestPrintableChar : Int;
-
-    private var receivedCr : Bool;
 
     private var promptTimer : flash.utils.Timer;
     private var promptWaiting : Bool;
@@ -87,7 +81,17 @@ class VT100 implements TelnetEventListener,
 
     private var beepSound : Sound;
 
+
     private var vtParser : VtParser;
+
+    private var oscString : String;
+
+    // Used to store the latest printable character, so it may be repeated by REP.
+    var latestPrintableChar : Int;
+
+    private var receivedCr : Bool;
+
+    private var tabStops : Array<Bool>;
 
     public function new(sendByte : Int -> Void, charBuffer : CharBuffer)
     {
@@ -245,7 +249,9 @@ class VT100 implements TelnetEventListener,
 
     private function translateCharset(b : Int) : Int
     {
-	switch(charsets[charset]) {
+	var cc = nextCharacterCharset;
+	nextCharacterCharset = charset;
+	switch(charsets[cc]) {
 	    case 48:
 		if(b >= 0x60 && b <= 0x7F) {
 		    var table = [ // Thanks Putty! :-)
@@ -374,6 +380,18 @@ class VT100 implements TelnetEventListener,
 	    for(x in (columns-charsToMove) ... columns)
 		cb.printCharAt(32, x, y);
 	}
+    }
+
+    // DEC Screen Alignment Test
+    private function handle_DECALN()
+    {
+	savedAttribs = cb.getAttributes();
+	cb.setDefaultAttributes();
+	cb.setFgColour(2);
+	for(y in 0...cb.getHeight())
+	    for(x in 0...cb.getWidth())
+		cb.printCharAt(69, x, y);
+	cb.setAttributes(savedAttribs);
     }
 
     private function handle_DECRC()
@@ -646,6 +664,7 @@ class VT100 implements TelnetEventListener,
 	setColoursDefault();
 	this.charsets = [ 65, 48, 65, 48 ];
 	charset = 0;
+	nextCharacterCharset = charset;
 	cb.setMargins(0, 10000);
 	cb.clear();
 	cb.setCurs(0, 0);
@@ -805,9 +824,9 @@ class VT100 implements TelnetEventListener,
 	return ret;
     }
 
-    private function unknownCmd(cmd : Int, intermediateChars : String)
+    private function unknownCmd(prefix : String, cmd : Int, intermediateChars : String)
     {
-	trace("Unknown ESC command: " + intermediateChars + " " + cmd);
+	trace("Unknown " + prefix + "command: " + intermediateChars + " " + cmd);
     }
 
     public function vtpEscDispatch(cmd : Int, intermediateChars : String) : Void
@@ -824,7 +843,7 @@ class VT100 implements TelnetEventListener,
 		    clh.setUtfCharSet(true);
 		    utfState = 0;
 		}
-	    } else unknownCmd(cmd, intermediateChars);
+	    } else unknownCmd("ESC ", cmd, intermediateChars);
 	} else if(intermediateChars == "(") {
 	    // Designate G0 character set.
 	    charsets[0] = cmd;
@@ -841,6 +860,8 @@ class VT100 implements TelnetEventListener,
 	    // Designate G3 character set.
 	    charsets[3] = cmd;
 	    return;
+	} else if(intermediateChars == "#") {
+	    handle_DECALN();
 	} else if(intermediateChars == "") {
 	    switch(cmd) {
 		case 55: // 7
@@ -858,26 +879,37 @@ class VT100 implements TelnetEventListener,
 		case 67: // C
 		    handle_CUF(getEmptyParams());
 		case 68: // D
-		    handle_CUB(getEmptyParams());
+		    vtpExecute(0x84);
 		case 69: // E
-		    vtpExecute(13);
-		    vtpExecute(10);
+		    vtpExecute(0x85);
 		case 70: // F
 		    handle_CPL(getEmptyParams());
 		case 71: // G
 		    handle_CHA(getEmptyParams());
 		case 72: // H
-		    handle_HTS();
+		    vtpExecute(0x88);
 		case 77: // M
 		    handle_RI();
+		case 78: // N
+		    vtpExecute(0x8E);
+		case 79: // O
+		    vtpExecute(0x8F);
+		case 80: // P
+		    vtpExecute(0x90);
+		case 86: // V
+		    vtpExecute(0x96);
+		case 87: // W
+		    vtpExecute(0x97);
+		case 88: // X
+		    vtpExecute(0x98);
 		case 90: // Z
 		    send_DA();
 		case 99: // c
 		    handle_RIS();
 		default:
-		    unknownCmd(cmd, intermediateChars);
+		    unknownCmd("ESC ", cmd, intermediateChars);
 	    }
-	} else unknownCmd(cmd, intermediateChars);
+	} else unknownCmd("ESC ", cmd, intermediateChars);
     }
 
     public function vtpCsiDispatch(cmd : Int,
@@ -949,8 +981,6 @@ class VT100 implements TelnetEventListener,
 	// TODO
     }
 
-    private var oscString : String;
-
     public function vtpOscStart() : Void
     {
 	oscString = "";
@@ -1017,11 +1047,36 @@ class VT100 implements TelnetEventListener,
 		}
 	    case 14: // CTRL-N, Shift Out -> Switch to G1 character set.
 		charset = 1;
+		nextCharacterCharset = charset;
 	    case 15: // CTRL-O, Shift In -> Switch to G0 character set.
 		charset = 0;
+		nextCharacterCharset = charset;
+	    case 0x84:
+		handle_CUB(getEmptyParams());
+	    case 0x85:
+		    vtpExecute(13);
+		    vtpExecute(10);
+	    case 0x88:
+		    handle_HTS();
 	    case 0x8D: // RI
 		maybeRemovePrompt();
 		handle_RI();
+	    case 0x8E: // SS2
+		nextCharacterCharset = 2;
+	    case 0x8F: // SS3
+		nextCharacterCharset = 3;
+	    case 0x90: // DCS
+		// TODO
+	    case 0x96: // SPA
+		// TODO
+	    case 0x97: // EPA
+		// TODO
+	    case 0x98: // SOS
+		// TODO
+	    case 0x9A: // DECID
+		// TODO
+	    default:
+		unknownCmd("", b, "");
 	}
     }
     
