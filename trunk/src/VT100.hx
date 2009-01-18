@@ -186,7 +186,7 @@ class VT100 implements TelnetEventListener,
     // Appends local text.
     public function appendText(s : String)
     {
-	cb.appendText(s);
+	cb.printWordWrap(s);
 	cb.setExtraCurs(cb.getCursX(), cb.getCursY());
     }
 

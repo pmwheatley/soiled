@@ -114,7 +114,7 @@ class Client {
 	telnet.removeEventListener("close", onClose);
 	telnet = null;
 	vt100.onDisconnect();
-	charBuffer.appendText("% Connection to server was closed by foreign host.\r\n");
+	charBuffer.appendText("% Connection to server was closed by foreign host.\n");
     }
 
     static var mouseDown : Bool;
@@ -282,7 +282,7 @@ class Client {
 
             // flash.Lib.current.stage.focus = vt100;
             flash.Lib.current.stage.addEventListener("resize", onResize);
-	    charBuffer.appendText("\n\nClick on this window to connect.\r\nWrite /help to read the documentation.\r\n");
+	    charBuffer.appendText("\n\nClick on this window to connect.\nWrite /help to read the documentation.\n");
 
         } catch(ex : Dynamic) {
             trace(ex);

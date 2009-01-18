@@ -296,13 +296,15 @@ class CharBuffer extends Bitmap {
 
     public function printWordWrap(s : String)
     {
-	var rows = wordWrapText(s, 0, 4, columns);
+	var rows = wordWrapText(s, 0, 0, columns);
 	for(i in 0...rows.length) {
 	    for(j in 0 ... rows[i].length) {
 		printChar(rows[i].charCodeAt(j));
 	    }
-	    carriageReturn();
-	    lineFeed();
+	    if(i != (rows.length-1)) {
+		carriageReturn();
+		lineFeed();
+	    }
 	}
     }
 
