@@ -852,21 +852,18 @@ class VT100 implements TelnetEventListener,
 	} else if(intermediateChars == "(") {
 	    // Designate G0 character set.
 	    charsets[0] = cmd;
-	    return;
 	} else if(intermediateChars == ")") {
 	    // Designate G1 character set.
 	    charsets[1] = cmd;
-	    return;
 	} else if(intermediateChars == "*") {
 	    // Designate G2 character set.
 	    charsets[2] = cmd;
-	    return;
 	} else if(intermediateChars == "+") {
 	    // Designate G3 character set.
 	    charsets[3] = cmd;
-	    return;
 	} else if(intermediateChars == "#") {
-	    handle_DECALN();
+	    if(cmd == 0x38) handle_DECALN();
+	    else unknownCmd("ESC ", cmd, intermediateChars);
 	} else if(intermediateChars == "") {
 	    switch(cmd) {
 		case 55: // 7
