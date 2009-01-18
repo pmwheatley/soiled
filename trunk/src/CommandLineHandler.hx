@@ -291,25 +291,28 @@ class CommandLineHandler
 			"/unset <name> - removes the variable.");
 	    } else {
 		switch(args) {
+		    case "test":
+			cb.printWordWrap("\nThis is a long text that is supposed to be word wrapped at the right time and place when being displayed on the screen.\n");
+			cb.setExtraCurs(cb.getCursX(), cb.getCursY());
 		    case "aliases":
-			appendText(
-				"\r\n" +
-				"Aliases\r\n" +
-				"-------\r\n" +
-				"Aliases substitute a written command for some other text.\r\n" +
-				"\r\nAn example:\r\n" +
-			        "# /alias test say Test!\r\n" +
-			        "# test Nisse\r\n" +
-			        "You say Test! Nisse\r\n\r\n" +
-				"One alias can send two or more commands to the server,\r\n" +
-				"just separete them with %; like this:\r\n" +
-				"# /alias test say Hi! %; say\r\n" +
-				"# test Ho!\r\n" +
-				"You say Hi!\r\n" +
-				"You say Ho!\r\n" +
-				"\r\n" +
-				"If you want your alias to send a single % character, write %% instead.\r\n"
+			cb.printWordWrap(
+				"\n" +
+				"Aliases\n" +
+				"-------\n" +
+				"Aliases substitute a written command for some other text.\n\n" +
+				"An example:\n" +
+			        "# /alias test say Test!\n" +
+			        "# test Nisse\n" +
+			        "You say Test! Nisse\n\n" +
+				"One alias can send two or more commands to the server, just separete them with %; like this:\n" +
+				"# /alias test say Hi! %; say\n" +
+				"# test Ho!\n" +
+				"You say Hi!\n" +
+				"You say Ho!\n" +
+				"\n" +
+				"If you want your alias to send a single % character, write %% instead.\n"
 				);
+			cb.setExtraCurs(cb.getCursX(), cb.getCursY());
 		    case "keys":
 			appendText(
 				"\r\n" +
@@ -326,7 +329,8 @@ class CommandLineHandler
 				"CTRL + M/ENTER - Send the written text.\r\n" +
 				"CTRL + P - Exchange the input for the previous input line in the history.\r\n" +
 				"CTRL + N - Exchange the input for the next input line in the history.\r\n" +
-				"SHIFT + PAGE UP/DOWN - scroll back to previous text.");
+				"SHIFT + PAGE UP/DOWN - scroll back to previous text.\r\n\r\n" +
+				"Pressing COMMAND/CTRL + left mouse button on a URL opens it.\r\n");
 		    case "macros":
 			appendText(
 				"\r\n" +
@@ -336,7 +340,7 @@ class CommandLineHandler
 			       	"command to define them, but they do not work like aliases, they work\r\n" +
 			       	"like you had written the alias' text directly on the input line.\r\n" +
 				"The name of a macro is of the format KEY_<name>[_[S][C][A]]\r\n" +
-				"The name is one of HOME, END, F1..F12, PGUP, PGDN, UP, DOWN, LEFT or RIGHT\r\n" +
+				"The name is one of HOME, END, INSERT, F1..F12, PGUP, PGDN, UP, DOWN, LEFT or RIGHT\r\n" +
 				"and the _S, _C or _A suffixes (and combinations like _SA)\r\n" +
 				"are used when the key is pressed together with shift, ctrl or alt/option.\r\n" +
 				"\r\n" +

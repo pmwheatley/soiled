@@ -128,10 +128,16 @@ class Client {
 	else {
 	    var x = charBuffer.getColumn(o.localX);
 	    var y = charBuffer.getRow(o.localY);
-	    lastX = x;
-	    lastY = y;
-	    vt100.onMouseDown(x+1, y+1, 0);
-	    charBuffer.beginSelect(o.localX, o.localY);
+	    if(o.ctrlKey) {
+		mouseDown = false;
+		var s = charBuffer.getWordAt(x, y);
+		flash.Lib.getURL(new flash.net.URLRequest(s), "_blank");
+	    } else {
+		lastX = x;
+		lastY = y;
+		vt100.onMouseDown(x+1, y+1, 0);
+		charBuffer.beginSelect(o.localX, o.localY);
+	    }
 	}
     }
 
