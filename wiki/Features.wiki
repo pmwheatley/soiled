@@ -11,7 +11,7 @@ Soiled is a mud client, but it is also a good enough terminal emulator and telne
   * Understands LF and CR like they are supposed to work.
   * Has local line editing using the emacs key bindings (CTRL-A, B, D, E, F, K, L, U and W).
   * Sends cursor keys, F1-F12, PGUP, PGDN, HOME and END to the server. Cursor keys can be sent in both application and "normal" mode.
-  * Supports the following VT100/VT102 control functions: SM, RM, DECSET, DECRST, DECSTBM, CUU, CUD, CUF, CUB, CUP, HVP, IND, RI, NEL, DECSC, DECRC, DECPAM, DECKPNM, SCS, SGR, HTS, TBC, EL, ED, DCH, IL, DL, DA, DECID, RI and RIS.
+  * Supports the following VT100/VT102 control functions: SM, RM, DECALN, DECSET, DECRST, DECSTBM, CUU, CUD, CUF, CUB, CUP, HVP, IND, RI, NEL, DECSC, DECRC, DECPAM, DECKPNM, SCS, SGR, HTS, TBC, EL, ED, DCH, IL, DL, DA, DECID, RI and RIS.
   * Understands xterm's 256 colour sequences.
   * char-by-char mode, sort off... When local echo is turned off, it operates in char-by-char mode.
   * Works as a client to most MUD servers and one can play !NetHack with DECGraphics via it. :-)
@@ -19,3 +19,4 @@ Soiled is a mud client, but it is also a good enough terminal emulator and telne
   * Copy & Paste.
   * Aliases/macros. There is basic support for aliases & macros, but nothing fancy yet.
   * Internal commands can be viewed with: /help
+  * Command/ctrl clicking an URL will open it in the browser.

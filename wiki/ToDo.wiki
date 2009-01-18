@@ -2,7 +2,6 @@
 
 = Features that would be good to support =
 
-  * When right-clicking on a URL, it should be possible to choose open and get them to open in a new window/tab.
   * Application/Normal Keypad.
   * autowrap support.
   * xterm:ish mouse tracking.
