@@ -10,7 +10,7 @@ install: soiled.swf
 CompileTime.hx:
 	date '+class CompileTime { public static var time = "%Y-%m-%d %H:%M:%S";}'> CompileTime.hx
 
-soiled.swf: CompileTime.hx Telnet.hx VT100.hx Client.hx
+soiled.swf: CharBuffer.hx Client.hx CommandLineHandler.hx CompileTime.hx Config.hx IVtParserListener.hx Telnet.hx TelnetEventListener.hx VT100.hx VtParser.hx compile.hxml
 	@echo Compiling soiled.swf
 	haxe compile.hxml
 	rm CompileTime.hx
