@@ -314,6 +314,12 @@ class CharBuffer extends Bitmap {
 	printChar_(b);
     }
 
+    public function insertChar(b : Int)
+    {
+	beginUpdate();
+	insertChar_(b);
+    }
+
     public function printCharWithAttribute(b : Int, attrib : Int)
     {
 	beginUpdate();
@@ -1270,6 +1276,15 @@ class CharBuffer extends Bitmap {
 	printCharAt_(b, cursX_++, cursY_);
     }
 
+    private function insertChar_(b : Int)
+    {
+	if(cursX_ >= columns) {
+	    cursX_ = 0;
+	    lineFeed_();
+	}
+	insertCharAt_(b, cursX_++, cursY_);
+    }
+
     public function printCharWithAttribute_(b : Int, attrib : Int)
     {
 	var oldAttrib = currentAttribute;
@@ -1281,6 +1296,19 @@ class CharBuffer extends Bitmap {
     private inline function printCharAt_(b : Int, x : Int, y : Int)
     {
 	var pos = x + y*columns;
+	if((charBuffer[pos] != b) ||
+	   (currentAttribute != (attrBuffer[pos] & ~ATT_UPDATED))) {
+	    charBuffer[pos] = b;
+	    attrBuffer[pos] = currentAttribute | ATT_UPDATED;
+	}
+    }
+
+    private inline function insertCharAt_(b : Int, x : Int, y : Int)
+    {
+	var pos = x + y*columns;
+	for(i in 1...(columns-x)) {
+	    copyChar_(columns-i-1, y, columns-i, y);
+	}
 	if((charBuffer[pos] != b) ||
 	   (currentAttribute != (attrBuffer[pos] & ~ATT_UPDATED))) {
 	    charBuffer[pos] = b;

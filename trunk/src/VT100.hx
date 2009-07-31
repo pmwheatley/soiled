@@ -64,6 +64,12 @@ class VT100 implements TelnetEventListener,
     var savedCursX : Int;
     var savedCursY : Int;
 
+    var decomMode : Bool; // Origin Mode. false = absolute.
+
+    var lnmMode : Bool; // Line feed/New Line Mode. True = New Line Mode.
+
+    var irmMode : Bool; // Insert/replace mode. true = insert.
+
     private var promptTimer : flash.utils.Timer;
     private var promptWaiting : Bool;
 
@@ -175,6 +181,10 @@ class VT100 implements TelnetEventListener,
 
 	cb.setCursorVisibility(true);
 	clh.reset();
+
+	decomMode = false;
+	lnmMode = false;
+	irmMode = false;
 
 	handle_RIS();
     }
@@ -315,6 +325,12 @@ class VT100 implements TelnetEventListener,
     {
 	var row = params[0];
 	var col = params[1];
+	if(decomMode) {
+	    // row starts at the scroll region.
+	    row += cb.getTopMargin();
+	    var bottom = cb.getBottomMargin();
+	    if(row > bottom) row = bottom;
+	}
 	if(row < 1) row = 1;
 	if(col < 1) col = 1;
 	cb.setCurs(col-1, row-1);
@@ -562,6 +578,11 @@ class VT100 implements TelnetEventListener,
 	tabStops[cb.getCursX()] = true;
     }
 
+    private function handle_HVP(params : Array<Int>)
+    {
+	handle_CUP(params);
+    }
+
     private function handle_ICH(params : Array<Int>)
     {
 	var charsToMove = params[0];
@@ -733,12 +754,22 @@ class VT100 implements TelnetEventListener,
 		switch(params[i]) {
 		    case 1:
 			clh.setApplicationCursorKeys(false);
+		    case 3: // DECCOLM - selects 80 columns per line.
+			trace("80 columns selected, not supported");
 		    case 4:
 			// SET jump-scroll mode.
+		    // case 5: // DECSCNM - screen
+			// trace("DECSCNM");
+		    case 6: // DECOM - Origin
+			decomMode = false;
 		    case 7:
 			// reset DECAWM - auto wrap.
+		    // case 8: // DECARM - auto repeat
+			// trace("DECARM");
 		    case 25:
 			cb.setCursorVisibility(false);
+		    // case 40: // Allow 80 -> 132 Mode
+		    // case 45: // Reverse-wraparound Mode
 		    case 47:
 			// trace("Use normal screen.");
 		    case 1049:
@@ -751,8 +782,10 @@ class VT100 implements TelnetEventListener,
 	    // Reset Mode.
 	    for(i in 0 ... nParams) {
 		switch(params[i]) {
-		    case 4:
-			// SET jump-scroll mode.
+		    case 4: // IRM - Insert/replace
+			irmMode = false;
+		    case 20: // LNM - Line Feed/New Line Mode.
+			lnmMode = false;
 		    default:
 			trace("Unknown RM-setting: " + params[i]);
 		}
@@ -768,8 +801,12 @@ class VT100 implements TelnetEventListener,
 		switch(params[i]) {
 		    case 1:
 			clh.setApplicationCursorKeys(true);
+		    case 3: // DECCOLM - selects 132 columns per line.
+			trace("132 columns selected, not supported");
 		    case 4:
 			// SET smooth scroll mode.
+		    case 6: // DECOM - Origin
+			decomMode = true;
 		    case 7:
 			// reset DECAWM - auto wrap.
 		    case 25:
@@ -786,8 +823,10 @@ class VT100 implements TelnetEventListener,
 	    // Set Mode.
 	    for(i in 0 ... nParams) {
 		switch(params[i]) {
-		    case 4:
-			// SET smooth scroll mode.
+		    case 4: // IRM - Insert/replace
+			irmMode = true;
+		    case 20: // LNM - Line Feed/New Line Mode.
+			lnmMode = false;
 		    default:
 			trace("Unknown SM-setting: " + params[i]);
 		}
@@ -953,6 +992,8 @@ class VT100 implements TelnetEventListener,
 		handle_REP(params);
 	    case 99: // c
 		handle_DA(intermediateChars);
+	    case 102:
+		handle_HVP(params);
 	    case 103: // g
 		handle_TBC(params);
 	    case 104: // h
@@ -1042,7 +1083,18 @@ class VT100 implements TelnetEventListener,
 	    case 10: // LF
 		maybeRemovePrompt();
 		cb.lineFeed();
-		cb.setExtraCurs(cb.getCursX(), cb.getCursY());
+		var newX = 0;
+		var newY = cb.getCursY();
+		if(lnmMode) {
+		    cb.setCurs(0, newY);
+		} else {
+		    newX = cb.getCursX();
+		}
+		cb.setExtraCurs(newX, newY);
+	    case 11: // VT - Vertical tabulation.
+		vtpExecute(10); // Process it just like LF.
+	    case 12: // FF - Form feed.
+		vtpExecute(10); // Process it just like LF.
 	    case 13: // CR
 		if(cb.getCursX() != 0) {
 		    receivedCr = true;
@@ -1089,7 +1141,8 @@ class VT100 implements TelnetEventListener,
 	newPromptString.addChar(b);
 	newPromptAttribute.push(cb.getAttributes());
 	latestPrintableChar = b;
-	cb.printChar(b);
+	if(irmMode) cb.insertChar(b);
+	else cb.printChar(b);
     }
 
     /******************************************************/
