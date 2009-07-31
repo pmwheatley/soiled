@@ -113,6 +113,8 @@ class CharBuffer extends Bitmap {
     private var cursorIsShown : Bool;
     private var cursorShouldBeVisible : Bool;
 
+    private var autoWrapMode : Bool;
+
     private var gotPreviousInput : Bool;
 
 
@@ -336,6 +338,7 @@ class CharBuffer extends Bitmap {
     {
 	cursorIsShown = false;
 	cursorShouldBeVisible = true;
+	autoWrapMode = true;
 	setDefaultAttributes();
 	scrollTop = 0;
 	scrollBottom = 10000;
@@ -795,6 +798,17 @@ class CharBuffer extends Bitmap {
     {
 	return cursY_;
     }
+
+    public function setAutoWrapMode(val : Bool)
+    {
+	autoWrapMode = val;
+    }
+
+    public function getAutoWrapMode() : Bool
+    {
+	return autoWrapMode;
+    }
+
 
     public function setCurs(x, y)
     {
@@ -1270,8 +1284,12 @@ class CharBuffer extends Bitmap {
     private function printChar_(b : Int)
     {
 	if(cursX_ >= columns) {
-	    cursX_ = 0;
-	    lineFeed_();
+	    if(autoWrapMode) {
+		cursX_ = 0;
+		lineFeed_();
+	    } else {
+		cursX_ = columns - 1;
+	    }
 	}
 	printCharAt_(b, cursX_++, cursY_);
     }

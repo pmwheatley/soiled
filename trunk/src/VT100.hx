@@ -63,6 +63,8 @@ class VT100 implements TelnetEventListener,
     var savedAttribs : Int;
     var savedCursX : Int;
     var savedCursY : Int;
+    var savedDecomMode : Bool;
+    var savedAutoWrapMode : Bool;
 
     var decomMode : Bool; // Origin Mode. false = absolute.
 
@@ -324,15 +326,15 @@ class VT100 implements TelnetEventListener,
     private function handle_CUP(params : Array<Int>)
     {
 	var row = params[0];
+	if(row < 1) row = 1;
 	var col = params[1];
+	if(col < 1) col = 1;
 	if(decomMode) {
 	    // row starts at the scroll region.
 	    row += cb.getTopMargin();
 	    var bottom = cb.getBottomMargin();
 	    if(row > bottom) row = bottom;
 	}
-	if(row < 1) row = 1;
-	if(col < 1) col = 1;
 	cb.setCurs(col-1, row-1);
     }
 
@@ -415,6 +417,8 @@ class VT100 implements TelnetEventListener,
     {
 	cb.setAttributes(savedAttribs);
 	cb.setCurs(savedCursX, savedCursY);
+	cb.setAutoWrapMode(savedAutoWrapMode);
+	decomMode = savedDecomMode;
     }
 
     private function handle_DECSC()
@@ -422,6 +426,8 @@ class VT100 implements TelnetEventListener,
 	savedAttribs = cb.getAttributes();
 	savedCursX = cb.getCursX();
 	savedCursY = cb.getCursY();
+	savedAutoWrapMode = cb.getAutoWrapMode();
+	savedDecomMode = decomMode;
     }
 
     private function handle_DECSTBM(params : Array<Int>)
@@ -762,8 +768,8 @@ class VT100 implements TelnetEventListener,
 			// trace("DECSCNM");
 		    case 6: // DECOM - Origin
 			decomMode = false;
-		    case 7:
-			// reset DECAWM - auto wrap.
+		    case 7: // DECAWM - auto wrap mode.
+			cb.setAutoWrapMode(false);
 		    // case 8: // DECARM - auto repeat
 			// trace("DECARM");
 		    case 25:
@@ -805,10 +811,12 @@ class VT100 implements TelnetEventListener,
 			trace("132 columns selected, not supported");
 		    case 4:
 			// SET smooth scroll mode.
+		    // case 5: // DECSCNM - screen
+			// trace("DECSCNM");
 		    case 6: // DECOM - Origin
 			decomMode = true;
-		    case 7:
-			// reset DECAWM - auto wrap.
+		    case 7: // set DECAWM - auto wrap mode.
+			cb.setAutoWrapMode(true);
 		    case 25:
 			cb.setCursorVisibility(true);
 		    case 47:
