@@ -374,13 +374,22 @@ simple_write(int fd, const char *str)
 static void process_line(int fd, char *line);
 
 /*
+ * Should we send TELNET debug information to the client?
+ */
+static bool
+should_send_debug(int fd)
+{
+    return !get_var(fd, "nodebug");
+}
+
+/*
  * Write the str to the client and append CR LF
  * Only used for TELNET debug tracing, so that it may easily be disabled.
  */
 static int
 mputs(int fd, const char *str)
 {
-    if(!get_var(fd, "nodebug")) {
+    if(should_send_debug(fd)) {
 	simple_write(fd, str);
 	return simple_write(fd, "\r\n");
     }
@@ -601,7 +610,7 @@ telnet_turned_on_him_option(int clinr, char c)
     switch(c) {
         case TTc:
             server_write(clinr, IAC SB TT "\001" IAC SE, 6, 0);
-            simple_write(clinr, "SENT IAC SB TERMINAL TYPE SEND IAC SE\r\n");
+            mputs(clinr, "SENT IAC SB TERMINAL TYPE SEND IAC SE");
     }
 }
 
@@ -618,7 +627,7 @@ telnet_turn_on_us_option(int clinr, char c)
         case EORc:
             clients[clinr].mode |= SM_EORECORDS;
             server_write(clinr, IAC ENDOFRECORD, 2, SW_DO_FLUSH);
-            simple_write(clinr, "SENT IAC ENDOFRECORD\r\n");
+            mputs(clinr, "SENT IAC ENDOFRECORD");
             /* don't resend the prompt, since it is the
              * clients job to just show the already received
              * one. */
@@ -672,10 +681,10 @@ send_telnet_will(int clinr, char c, int flags)
     buff[1] = WILLc;
     buff[2] = c;
     server_write(clinr, buff, 3, flags);
-    sprintf(debug_buffer, "SENT IAC WILL %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "SENT IAC WILL %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(clients[clinr].tos_us[(unsigned)c]));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 }
 
 static void
@@ -686,10 +695,10 @@ send_telnet_wont(int clinr, char c, int flags)
     buff[1] = WONTc;
     buff[2] = c;
     server_write(clinr, buff, 3, flags);
-    sprintf(debug_buffer, "SENT IAC WONT %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "SENT IAC WONT %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(clients[clinr].tos_us[(unsigned)c]));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 }
 
 static void
@@ -700,10 +709,10 @@ send_telnet_do(int clinr, char c, int flags)
     buff[1] = DOc;
     buff[2] = c;
     server_write(clinr, buff, 3, flags);
-    sprintf(debug_buffer, "SENT IAC DO %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "SENT IAC DO %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(clients[clinr].tos_him[(unsigned)c]));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 }
 
 static void
@@ -714,10 +723,10 @@ send_telnet_dont(int clinr, char c, int flags)
     buff[1] = DONTc;
     buff[2] = c;
     server_write(clinr, buff, 3, flags);
-    sprintf(debug_buffer, "SENT IAC DONT %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "SENT IAC DONT %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(clients[clinr].tos_him[(unsigned)c]));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 }
 
 static void
@@ -951,10 +960,10 @@ process_telnet_do_option(int clinr, char c)
 {
     telnet_option_state *us_q = &(clients[clinr].tos_us[(unsigned)c]);
 
-    sprintf(debug_buffer, "RCVD IAC DO %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "RCVD IAC DO %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(*us_q));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 
     switch(*us_q) {
         case tos_NO:
@@ -1010,10 +1019,10 @@ static int
 process_telnet_dont_option(int clinr, char c)
 {
     telnet_option_state *us_q = &(clients[clinr].tos_us[(unsigned)c]);
-    sprintf(debug_buffer, "RCVD IAC DONT %s (us_q=%s)\r\n",
+    sprintf(debug_buffer, "RCVD IAC DONT %s (us_q=%s)",
             get_telnet_option(c),
             get_telnet_state(*us_q));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 
     switch(*us_q) {
         case tos_NO:
@@ -1059,10 +1068,10 @@ static int
 process_telnet_will_option(int clinr, char c)
 {
     telnet_option_state *him_q = &(clients[clinr].tos_him[(unsigned)c]);
-    sprintf(debug_buffer, "RCVD IAC WILL %s (him_q=%s)\r\n",
+    sprintf(debug_buffer, "RCVD IAC WILL %s (him_q=%s)",
             get_telnet_option(c),
             get_telnet_state(*him_q));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 
     switch(*him_q) {
         case tos_NO:
@@ -1131,10 +1140,10 @@ process_telnet_wont_option(int clinr, char c)
 {
     telnet_option_state *him_q = &(clients[clinr].tos_him[(unsigned)c]);
 
-    sprintf(debug_buffer, "RCVD IAC WONT %s (him_q=%s)\r\n",
+    sprintf(debug_buffer, "RCVD IAC WONT %s (him_q=%s)",
             get_telnet_option(c),
             get_telnet_state(*him_q));
-    simple_write(clinr, debug_buffer);
+    mputs(clinr, debug_buffer);
 
     switch(*him_q) {
         case tos_NO:
@@ -1229,7 +1238,7 @@ process_telnet_sb_option(int clinr)
     int len = clients[clinr].telnet_position - clients[clinr].curr;
     int pos = 0;
     int i;
-    if(!get_var(clinr, "nodebug")) {
+    if(should_send_debug(clinr)) {
 	sprintf(debug_buffer, "RCVD IAC SB %s ", get_telnet_option(buff[0]));
 	simple_write(clinr, debug_buffer);
 	for(i = 1; i < len; i++) {
@@ -1248,13 +1257,15 @@ process_telnet_sb_option(int clinr)
             }
             switch(buff[++pos]) {
                 case 1: /* Request */
-                    simple_write(clinr, "RCVD IAC SB CHARSET REQUEST ");
-		    int x = pos;
-                    while(++x <= len) {
-                        /* XXX support for sending the version string */
-                        server_write(clinr, buff+x, 1, 0);
-                    }
-                    simple_write(clinr, "\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET REQUEST ");
+			int x = pos;
+			while(++x <= len) {
+			    /* XXX support for sending the version string */
+			    server_write(clinr, buff+x, 1, 0);
+			}
+			simple_write(clinr, "\r\n");
+		    }
 		    pos++;
 		    if(!strncmp("TTABLE", buff+pos, 6)) pos += 7; // Skip TTABLE and a VERSION byte.
 		    char sep = buff[pos];
@@ -1277,45 +1288,59 @@ process_telnet_sb_option(int clinr)
 			server_write(clinr, IAC SB CHARSET "\002", 4, 0);
 			server_write(clinr, buff + start, pos-start, 0);
 		        server_write(clinr, IAC SE, 2, SW_DO_FLUSH);
-			simple_write(clinr, "SENT IAC SB CHARSET ACCEPT \"");
-			server_write(clinr, buff + start, pos-start, 0);
-			simple_write(clinr, "\" IAC SE\r\n");
+			if(should_send_debug(clinr)) {
+			    simple_write(clinr, "SENT IAC SB CHARSET ACCEPT \"");
+			    server_write(clinr, buff + start, pos-start, 0);
+			    simple_write(clinr, "\" IAC SE\r\n");
+			}
 		    } else {
 			server_write(clinr, IAC SB CHARSET "\003" IAC SE, 6, SW_DO_FLUSH);
-			simple_write(clinr, "SENT IAC SB CHARSET REJECT IAC SE\r\n");
+			mputs(clinr, "SENT IAC SB CHARSET REJECT IAC SE");
 		    }
                     break;
                 case 2: /* ACCEPTED */
-                    simple_write(clinr, "RCVD IAC SB CHARSET ACCEPTED ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET ACCEPTED ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     break;
                 case 3: /* REJECTED */
-                    simple_write(clinr, "RCVD IAC SB CHARSET REJECTED ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET REJECTED ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     break;
                 case 4: /* TTABLE-IS */
-                    simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-IS ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-IS ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     server_write(clinr, IAC SB CHARSET "\005" IAC SE, 6, SW_DO_FLUSH);
-                    simple_write(clinr, "SENT IAC SB CHARSET TTABLE-REJECTED IAC SE\r\n");
+                    mputs(clinr, "SENT IAC SB CHARSET TTABLE-REJECTED IAC SE");
                     break;
                 case 5: /* TTABLE-REJECTED */
-                    simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-REJECTED ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-REJECTED ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     break;
                 case 6: /* TTABLE-ACK */
-                    simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-ACK ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-ACK ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     break;
                 case 7: /* TTABLE-NAK */
-                    simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-NAK ");
-                    send_debug_data(clinr, buff + pos, len-pos);
-                    simple_write(clinr, "IAC SE\r\n");
+		    if(should_send_debug(clinr)) {
+			simple_write(clinr, "RCVD IAC SB CHARSET TTABLE-NAK ");
+			send_debug_data(clinr, buff + pos, len-pos);
+			simple_write(clinr, "IAC SE\r\n");
+		    }
                     break;
                 default:
                     sprintf(debug_buffer, "ERROR(?): Received unknown CHARSET SB Code: %02x\r\n", buff[pos]);
@@ -1330,14 +1355,14 @@ process_telnet_sb_option(int clinr)
             }
             if(buff[++pos] != 0)
                 break;
-            sprintf(debug_buffer, "TT: \"");
-            simple_write(clinr, debug_buffer);
-            pos++;
-            while(pos < len) {
-                sprintf(debug_buffer, "%c", (int)(buff[pos++]));
-                simple_write(clinr, debug_buffer);
-            }
-            simple_write(clinr, "\"\r\n");
+	    sprintf(debug_buffer, "TT: \"");
+	    simple_write(clinr, debug_buffer);
+	    pos++;
+	    while(pos < len) {
+		sprintf(debug_buffer, "%c", (int)(buff[pos++]));
+		simple_write(clinr, debug_buffer);
+	    }
+	    simple_write(clinr, "\"\r\n");
 
             break;
         case NAWSc:	/* NAWS */
@@ -2162,7 +2187,7 @@ handle_zmp(int fd, char *line)
             args[n_args-1]++;
             line++;
             /* XXX have some way of excaping " characters... */
-            while(*line && *line != '"') *line++;
+            while(*line && *line != '"') line++;
             if(*line != '"') {
                 simple_write(fd, "ERROR: Unterminated ZMP argument\r\n");
                 return;
@@ -2913,7 +2938,6 @@ process_line(int fd, char *line)
     } else if(!strcasecmp("quit", line)) {
         char buffer[100];
         simple_write(fd, "Bwye!\r\n");
-        server_close(fd);
         server_close(fd);
         buffer[0] = 0;
 #ifdef NI_NUMERICHOST
