@@ -39,8 +39,16 @@ enum EnuTelnetOptionState {
     TOS_WANTNO_OPPOSITE;
 }
 
-// TODO: add proper Q method of TELNET option negotiation.
-
+/* An implementation of the Telnet protocol using the Q-method
+   of option negotiation.
+   The class supports a few of the extra protocols;
+   NAWS
+   TERMINAL TYPE (TT)
+   ECHO
+   SUPRESSGOAHEAD
+   END OF RECORD (EOR)
+   Very basic support of CHARSET.
+ */
 class Telnet extends flash.events.EventDispatcher {
 
     private static var terminals : Array<String> = [

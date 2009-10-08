@@ -17,6 +17,10 @@
    The project's page is located here: http://code.google.com/p/soiled/
 */
 
+/* The interface that must be implemented for classes that want to
+   listen to events from the VtParser class. These functions are
+   called by VtParser when it has detected the varous forms of
+   commands in the protocol stream. */
 interface IVtParserListener
 {
     /*

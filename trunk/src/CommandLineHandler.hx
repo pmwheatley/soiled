@@ -22,6 +22,11 @@ import flash.events.KeyboardEvent;
 
 // TODO: Implement Application Keypad.
 
+/*
+   A class that handles input from the user. It implements a
+   single line editor (when in line-by-line mode), local-command
+   handling and a simple help system.
+ */
 class CommandLineHandler
 {
 
@@ -149,8 +154,8 @@ class CommandLineHandler
 
     private function updateInputCursPosition(toChar : Int)
     {
-	inputCursPositionX = cb.getExtraCursX();
-	inputCursPositionY = cb.getExtraCursY();
+	inputCursPositionX = cb.getExtraCursColumn();
+	inputCursPositionY = cb.getExtraCursRow();
 	while(toChar-- > 0) {
 	    if(++inputCursPositionX >= cb.getWidth()) {
 		inputCursPositionX = 0;

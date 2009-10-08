@@ -24,12 +24,13 @@ import flash.external.ExternalInterface;
 import flash.events.KeyboardEvent;
 
 /*
-   VT100 handles input from the server and sends draw requests to the CharBuffer.
-   Input from the user is sent to a CommandLineHandler.
+   VT100 handles input from the server and sends draw requests to
+   a CharBuffer. Input from the user is sent to a CommandLineHandler.
 
-   Despite its name, it is not a VT100 emulator. It only understands enough of it
-   to be usable for common MUDs and most curses programs.
-
+   Despite its name, it is not a VT100 emulator, but it understands
+   enough of it to be usable for common MUDs and most curses programs.
+   It also understands some of the xterm extensions and some VT102 and VT220
+   commands.
 */
 class VT100 implements TelnetEventListener,
             implements IVtParserListener

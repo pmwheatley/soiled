@@ -19,6 +19,8 @@
 
 import flash.net.SharedObject;
 
+/* The config class is responsible for loading/storing config values
+   and provide a container for them */
 class Config
 {
 

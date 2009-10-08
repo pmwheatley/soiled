@@ -17,6 +17,7 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-// If compiling Soiled with only haxe, copy this file to CompileTime.hx
+// If compiling Soiled with only haxe (ie with windows),
+// copy this file to CompileTime.hx
 
 class CompileTime { public static var time = "unknown"; }

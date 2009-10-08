@@ -27,11 +27,23 @@ import flash.text.TextFieldType;
 import flash.text.TextFieldAutoSize;
 import flash.events.TextEvent;
 
+/* The main class, it sets up the other classes,
+   routes the I/O and GUI events to the other classes.
+*/
 class Client {
+
     private static var charBuffer : CharBuffer;
     private static var vt100 : VT100;
     private static var telnet : Telnet;
 
+    private static var textField : TextField;
+
+    static var mouseDown : Bool;
+    static var lastX : Int;
+    static var lastY : Int;
+
+
+    /* Convert an integer to its character value (as a string) */
     private static function asc(b : Int) {
 	if(b == 10) return "\n";
 	if(b == 9) return "\t";
@@ -39,34 +51,27 @@ class Client {
 	return String.fromCharCode(b);
     }
 
+    /* The "Copy" action has been performed by the user */
     private static function onCopy(o : Dynamic)
     {
-	// trace("Copy" + o);
 	if(charBuffer.doCopy())
 	    flash.system.System.setClipboard(charBuffer.getSelectedText());
     }
 
+    /* The "Paste" action has been performed by the user */
     private static function onPaste(o : Dynamic)
     {
-	// trace("Paste" + o);
 	vt100.doPaste(charBuffer.getSelectedText());
     }
 
-    /*
-    private static function onPasteFromTextField(o : Dynamic)
-    {
-	trace(o);
-    }
-    */
-
+    /* The "Copy & Paste" action has been performed by the user */
     private static function onCopyPaste(o : Dynamic)
     {
 	onCopy(o);
 	onPaste(o);
     }
 
-    private static var textField : TextField;
-
+    /* Text has been written/pasted by the user */
     private static function onText(o : Dynamic)
     {
 	try {
@@ -86,20 +91,19 @@ class Client {
 	}
     }
 
+    /* The user has pressed a key */
     private static function onKeyDown(o : Dynamic)
     {
-	// trace(o);
 	try {
 	    var e : flash.events.KeyboardEvent = o;
-	    // trace("KC=" + StringTools.hex(e.keyCode) + " CC=" + StringTools.hex(e.charCode));
 
 	    vt100.handleKey(e);
-
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
     }
     
+    /* The user has resized the client */
     static function onResize(o : Dynamic)
     {
 	textField.width = charBuffer.width = flash.Lib.current.stage.stageWidth;
@@ -109,6 +113,7 @@ class Client {
 	}
     }
 
+    /* The socket has been closed to the server */
     private static function onClose(o : Dynamic)
     {
 	telnet.removeEventListener("close", onClose);
@@ -117,17 +122,14 @@ class Client {
 	charBuffer.appendText("% Connection to server was closed by foreign host.\n");
     }
 
-    static var mouseDown : Bool;
-    static var lastX : Int;
-    static var lastY : Int;
-
+    /* The user has pressed the mouse button */
     static function onMouseDown(o : Dynamic)
     {
 	mouseDown = true;
 	if(telnet == null) connect();
 	else {
-	    var x = charBuffer.getColumn(o.localX);
-	    var y = charBuffer.getRow(o.localY);
+	    var x = charBuffer.getColumnFromLocalX(o.localX);
+	    var y = charBuffer.getRowFromLocalY(o.localY);
 	    if(o.ctrlKey) {
 		mouseDown = false;
 		var s = charBuffer.getWordAt(x, y);
@@ -141,11 +143,12 @@ class Client {
 	}
     }
 
+    /* The user has moved the mouse */
     static function onMouseMove(o : Dynamic)
     {
 	if(telnet != null && mouseDown) {
-	    var x = charBuffer.getColumn(o.localX);
-	    var y = charBuffer.getRow(o.localY);
+	    var x = charBuffer.getColumnFromLocalX(o.localX);
+	    var y = charBuffer.getRowFromLocalY(o.localY);
 	    if(lastX == x && lastY == y) return;
 	    lastX = x;
 	    lastY = y;
@@ -154,30 +157,31 @@ class Client {
 	}
     }
 
+    /* The user has released the mouse button */
     static function onMouseUp(o : Dynamic)
     {
-	// trace(o);
 	if(!mouseDown) return;
 	mouseDown = false;
 	if(telnet != null) {
-	    var x = charBuffer.getColumn(o.localX);
-	    var y = charBuffer.getRow(o.localY);
+	    var x = charBuffer.getColumnFromLocalX(o.localX);
+	    var y = charBuffer.getRowFromLocalY(o.localY);
 	    vt100.onMouseUp(x+1, y+1, 0);
 	    charBuffer.endSelect(o.localX, o.localY);
 	}
     }
 
+    /* The user has double clicked */
     static function onDoubleClick(o : Dynamic)
     {
-	// trace(o);
 	if(telnet != null) {
-	    var x = charBuffer.getColumn(o.localX);
-	    var y = charBuffer.getRow(o.localY);
+	    var x = charBuffer.getColumnFromLocalX(o.localX);
+	    var y = charBuffer.getRowFromLocalY(o.localY);
 	    vt100.onMouseDouble(x+1, y+1, 0);
 	    charBuffer.doubleClickSelect(o.localX, o.localY);
 	}
     }
 
+    /* Connect to the configured server address and port */
     static function connect()
     {
 	var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
@@ -188,8 +192,8 @@ class Client {
 	telnet.addEventListener("close", onClose);
     }
 
+    /* Send a byte to the server */
     static function sendByte(b : Int) {
-        // trace("Sending: " + b);
 	if(telnet != null) {
 	    // TODO: Optimize. No need to flush after each byte...
 	    telnet.writeByte(b);
@@ -199,6 +203,7 @@ class Client {
 	}
     }
 
+    /* The first method called */
     static function main() {
         try {
             flash.Lib.current.stage.scaleMode = flash.display.StageScaleMode.NO_SCALE;

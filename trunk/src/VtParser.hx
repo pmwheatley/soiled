@@ -46,8 +46,8 @@ enum EnuVtInputState
    Changes from that state-diagram:
    - All characters above 0x9F are handled like 20-7F characters.
    - OSC_STRING can end with BEL (to be xterm combatible).
-   - The transitions to DCS_PASSTHROUGH will keep the character, to use by the
-     hook action.
+   - The transitions to DCS_PASSTHROUGH will keep the character, for
+     use by the hook action.
 
    All commands are handled by some class implementing IVtParserListener.
  */

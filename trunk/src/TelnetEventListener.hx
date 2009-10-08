@@ -17,28 +17,34 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
+/* The interface classes need to implement that wants to listen to
+   events from the Telnet class.
+   These functions are called by Telnet when it has detected 
+   commands in the protocol stream */
 interface TelnetEventListener {
 
-    /* Tells the client if the server is supposed to echo entered text or not. */
+    /* Tells the client if the server is supposed to echo entered
+       text or not. */
     function changeServerEcho(remoteEcho : Bool) : Void;
 
-    /* If on is true, tells the client that it should use UTF-8 should be used
-       to/from the server. */
+    /* If on is true, tells the client that it should use UTF-8 when
+       reading/writing text to/from the server. */
     function setUtfEnabled(on : Bool) : Void;
 
-    /* The cursor has been received from the server */
+    /* The prompt has been received from the server */
     function onPromptReception() : Void;
 
     /* Handle a received byte from the server, after telnet processing */
     function onReceiveByte(b : Int) : Void;
 
-    /* No more bytes are received, draw everything */
+    /* No more bytes are received (for now), draw everything */
     function flush() : Void;
 
-    /* Writes some text to the screen */
+    /* Writes some text to the screen/user */
     function appendText(s : String) : Void;
 
-    /* Gets the size of the screen */
+    /* Telnet uses these to get the size of the screen when the server
+       asks for it. */
     function getColumns() : Int;
     function getRows() : Int;
 }

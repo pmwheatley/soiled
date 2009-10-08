@@ -29,22 +29,24 @@ import flash.text.TextFormat;
 import flash.utils.Dictionary;
 
 /*
-   Displays the characters on the screen.
-   Has font attributes, basic cursor movement etc.
+   A Bitmap that displays fixed width characters and a cursor.
+   Has character attributes (and methods to change them),
+   methods to move the cursor etc.
 
    Positions starts at 0 in this class.
 
+   This class should really be split up into smaller classes,
+   but most features of it are dependant on the other features.
 */
-
 class CharBuffer extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
 
     /*
-       The character attributes are:
+       The character attributes bits are:
        0..7 fg-colour (xterm 256-colour format).
        8..15 bg-colour.
-       16..30 special attributes, defined below.
+       16..30 special attributes, defined below:
      */
     private static inline var ATT_BRIGHT = 1 << 16;
     private static inline var ATT_DIM = 1 << 17;
@@ -54,7 +56,7 @@ class CharBuffer extends Bitmap {
     private static inline var ATT_ITALIC = 1 << 21;
     private static inline var ATT_BOLD = 1 << 22;
 
-    /* The character needs to redrawn on the bitmap.  */
+    /* If this attribute is set, the character needs to redrawn */
     private static inline var ATT_UPDATED = 1 << 30;
 
     /* The 0-15 DEC-colours in R G B format. */
@@ -77,30 +79,66 @@ class CharBuffer extends Bitmap {
 	0xFFFFFF, // Bright-light gray
 	];
 
+    /* The size of the font in whole pixels: */
     private var fontHeight : Int;
     private var fontWidth : Int;
+
+    /* A Rectangle that has the size of the font */
     private var fontCopyRect : Rectangle;
+
+    /* A bitmap containing the glyphs of the ISO-8859-1 characters.
+       It is generated in the initFont method */
     private var fontBitmap : BitmapData;
+
+    /* A dictionary mapping Unicode number to a bitmap describing its glyph.
+       It is generated as needed */
     private var unicodeDict : Array<Dictionary>; // Unicode -> BitmapData
 
+    /* Arrays describing what character, and their attributes, that
+       should be drawn in each visible position.
+       x&y character-coordinates are translated like x+y*WIDTH into an index
+       in the array */
     private var charBuffer : Array<Int>;
     private var attrBuffer : Array<Int>;
 
+    /* An array of arrays of previously described lines.
+       Each line is stored in its own array.
+    */
     private var scrollbackCharacters : Array<Array<Int>>;
     private var scrollbackAttributes : Array<Array<Int>>;
+    /* The length of the previous lines (might not be the same
+       as the current screen width) */
     private var scrollbackLineLength : Array<Int>;
+
+    /* The position of the first scrollback line in the
+       arrays above. Older lines have higher numbers. */
     private var scrollbackFirst : Int;
+
+    /* How many lines have been stored in the scrollback buffer */
     private var scrollbackSize : Int;
 
+    /* How many scrollback lines are there between the top of
+       the screen and the active screen?
+       0 = no visible scrollback buffer.
+       1 = one visible scrollback line.
+    */
     private var displayOffset : Int;
 
+    /* How many character columns are there currently? */
     private var columns : Int;
+    /* How many character rows are there currently? */
     private var rows : Int;
 
-    private var cursX_ : Int;
-    private var cursY_ : Int;
+    /* The X & Y coordinate of the cursor */
+    private var cursX : Int;
+    private var cursY : Int;
+    /* The current character attribute to use when drawing
+       new characters */
     private var currentAttribute : Int;
 
+    /* The "extra cursor" position. A position that is moved
+       if the location it points to is scrolling.
+    */
     private var extraCursX : Int;
     private var extraCursY : Int;
 
@@ -110,25 +148,40 @@ class CharBuffer extends Bitmap {
     /* One larger than the last row that is scrolled when needed. */
     private var scrollBottom : Int;
 
+    /* Is the cursor drawn on the bitmap? */
     private var cursorIsShown : Bool;
+
+    /* Should the cursor drawn on the bitmap? */
     private var cursorShouldBeVisible : Bool;
 
+    /* When the cursor comes to the right edge of the screen,
+       should it move to the next line or stay put? */
     private var autoWrapMode : Bool;
 
+    /* Has there been any changes to the buffer so the bitmap
+       should be redrawn? */
     private var gotPreviousInput : Bool;
 
-
+    /* Pointer's pixel positions for selection of text */
     private var startOfSelectionX : Int;
     private var startOfSelectionY : Int;
     private var endOfSelectionX : Int;
     private var endOfSelectionY : Int;
+
+    /* The character position for selection of text */
     private var startOfSelectionColumn : Int;
-    private var endOfSelectionColumn : Int;
     private var startOfSelectionRow : Int;
+    private var endOfSelectionColumn : Int;
     private var endOfSelectionRow : Int;
+
+    /* Copied text ends up here */
     private var latestSelectedText : String;
+
+    /* When an area has been marked/selected before being copied,
+       its text is put in this string. */
     private var tmpSelectedText : String;
 
+    /* When turned on, various debug code could be run. */
     private var debug : Bool;
 
     public function new()
@@ -172,6 +225,9 @@ class CharBuffer extends Bitmap {
 
     }
 
+    /* Write text to the screen where the cursor is and
+       update the cursors position.
+       The bitmap will also be redrawn */
     public function appendText(s : String)
     {
 	var i = -1;
@@ -185,6 +241,9 @@ class CharBuffer extends Bitmap {
 	endUpdate();
     }
 
+    /* A helper function to the word wrapper.
+       Finds a suitable position in the string, after the "start" position,
+       where it can be split for word wrapping */
     private function findBreakPoint(s : String, start : Int, width : Int) : Int
     {
 	var lastWrapPoint = start;
@@ -236,6 +295,9 @@ class CharBuffer extends Bitmap {
      * Non-breaking hyphen (U+2011)
      * No-break space (U+00A0)
      * Zero-width space (U+200B)
+     *
+     * firstLineIndent is how many characters that should be indented
+     * on the first line. lineIndent is the same for the other lines.
      */
     public function wordWrapText(s : String,
 	                         firstLineIndent : Int,
@@ -296,6 +358,9 @@ class CharBuffer extends Bitmap {
 	return result;
     }
 
+    /* Writes the string to the screen, wordwrapping as needed.
+     * TODO: It assumes the cursor is at column 0 when it is called...
+     */
     public function printWordWrap(s : String)
     {
 	var rows = wordWrapText(s, 0, 0, columns);
@@ -310,30 +375,38 @@ class CharBuffer extends Bitmap {
 	}
     }
 
+    /* Prints the character b on the screen and moves the cursor. */
     public function printChar(b : Int)
     {
 	beginUpdate();
 	printChar_(b);
     }
 
+    /* Inserts the character b on the screen, moves previous text to
+       the right and moves the cursor. */
     public function insertChar(b : Int)
     {
 	beginUpdate();
 	insertChar_(b);
     }
 
+    /* Prints the character b, with attributes attrib, on the screen
+       and moves the cursor. */
     public function printCharWithAttribute(b : Int, attrib : Int)
     {
 	beginUpdate();
 	printCharWithAttribute_(b, attrib);
     }
 
+    /* Prints the character b on the x,y position. Does not move the cursor. */
     public function printCharAt(b : Int, x : Int, y : Int)
     {
 	beginUpdate();
 	printCharAt_(b, x, y);
     }
 
+    /* Resets the CharBuffer to the default state (including clearing
+       the screen), but does not clear the scrollback buffer. */
     public function reset()
     {
 	cursorIsShown = false;
@@ -345,18 +418,21 @@ class CharBuffer extends Bitmap {
 	clear();
     }
 
+    /* Clears the screen. */
     public function clear()
     {
 	beginUpdate();
 	removeSelection();
-	// var bgColour = getBgColour(currentAttribute);
 	for(i in 0...rows*columns) {
 	    charBuffer[i] = 0;
 	    attrBuffer[i] = 2 | ATT_UPDATED;
 	}
     }
 
-    // This must be called after any function is called...
+    /* This must be called after any other function is called, except
+       append.
+       When called, the changes are written to the bitmap.
+    */
     public function endUpdate()
     {
 	if(gotPreviousInput) {
@@ -372,15 +448,7 @@ class CharBuffer extends Bitmap {
 	}
     }
 
-    public function beginUpdate()
-    {
-	if(!gotPreviousInput) {
-	    gotPreviousInput = true;
-	    this.bitmapData.lock();
-	    removeCursor_();
-	}
-    }
-
+    /* Should be called when the CharBuffer is resized */
     public function resize() : Bool
     {
 	var w = Math.floor(this.width);
@@ -432,14 +500,18 @@ class CharBuffer extends Bitmap {
 	    rows = newRows;
 	    charBuffer = newCharBuffer;
 	    attrBuffer = newAttrBuffer;
-	    while(cursY_ >= rows) {
-		cursY_--;
+	    while(cursY >= rows) {
+		cursY--;
 	    }
 	}
 	endUpdate();
 	return newSize;
     }
 
+    /* Should be called when the mouse is pressed on a spot for selecting
+       text to copy. Ie MOUSE_DOWN event.
+       x&y are in pixel coordinates.
+    */
     public function beginSelect(x : Int, y : Int)
     {
 	beginUpdate();
@@ -453,6 +525,10 @@ class CharBuffer extends Bitmap {
 	endOfSelectionY = y;
     }
 
+    /* Should be called when the mouse is moved to a new position when
+       selecting text to copy. Ie MOUSE_MOVE event.
+       x&y are in pixel coordinates.
+    */
     public function updateSelect(x : Int, y : Int)
     {
 	if(startOfSelectionX < 0) return;
@@ -564,6 +640,8 @@ class CharBuffer extends Bitmap {
 	tmpSelectedText = buff.toString();
     }
 
+    /* Should be called when the mouse is no longer pressed and
+       text is selected. Ie MOUSE_UP event */
     public function endSelect(x : Int, y : Int)
     {
 	if(startOfSelectionX < 0) return;
@@ -582,6 +660,8 @@ class CharBuffer extends Bitmap {
 	updateTmpSelectionBuffer(false);
     }
 
+    /* Should be called when the user double clicks on a coordinate.
+       x&y are in pixel coordinates. */
     public function doubleClickSelect(x : Int, y : Int)
     {
 	beginUpdate();
@@ -626,6 +706,8 @@ class CharBuffer extends Bitmap {
 	endUpdate();
     }
 
+    /* Used to find the "word" written at the x&y character coordinates.
+       Typicly used when ctrl-clicking to go to an URL */
     public function getWordAt(x : Int, y : Int) : String
     {
 	scrollbackToBottom(); // XXX Until it works better...
@@ -650,6 +732,8 @@ class CharBuffer extends Bitmap {
 	}
     }
 
+    /* Returns true if there is a section that is marked/selected
+       and it could be copied */
     public function doCopy() : Bool
     {
 	if(startOfSelectionX < 0) return false;
@@ -663,13 +747,369 @@ class CharBuffer extends Bitmap {
 	return true;
     }
 
-
+    /* Returns the last copied text */
     public function getSelectedText() : String
     {
 	return latestSelectedText;
     }
 
 
+    /* Makes the visible screen be shown in full, no part of the scrollback
+       buffer is seen anymore */
+    public function scrollbackToBottom()
+    {
+	if(displayOffset == 0) return;
+
+	beginUpdate();
+	displayOffset = 0;
+	redrawVisibleCharacters();
+    }
+
+    /* Shows older lines from the scrollbackbuffer, if possible. */
+    public function scrollbackUp()
+    {
+	if(displayOffset == scrollbackSize) return;
+
+	beginUpdate();
+	removeSelection(); // XXX Until it works better...
+
+	displayOffset += rows>>1;
+	if(displayOffset > scrollbackSize)
+	    displayOffset = scrollbackSize;
+
+	drawScrollbackCharacters();
+
+	redrawVisibleCharacters();
+    }
+
+    /* Shows newer lines from the scrollbackbuffer. */
+    public function scrollbackDown()
+    {
+	if(displayOffset == 0) return;
+
+	beginUpdate();
+	removeSelection(); // XXX Until it works better...
+
+	displayOffset -= rows>>1;
+	if(displayOffset <= 0)
+	    displayOffset = 0;
+	else {
+	    drawScrollbackCharacters();
+	}
+
+	redrawVisibleCharacters();
+    }
+
+    /* Returns a value that represents the current attributes. */
+    public function getAttributes()
+    {
+	return currentAttribute;
+    }
+
+    /* Sets the top and bottom scroll margins.
+       Whenever the cursor should be moved below the bottom margin,
+       the lines between top and bottom are scrolled up.
+       The top line is then lost. */
+    public function setMargins(top : Int, bottom : Int)
+    {
+	if(top < 0) {
+	    trace("setMargins: top too small: " + top);
+	    top = 0;
+	}
+	if(bottom >= rows) {
+	    if(bottom != 10000) trace("setMargins: bottom too large: " + bottom);
+	}
+	if(bottom <= top) {
+	    trace("setMargins: bottom <= top: top=" + top + "bottom=" + bottom);
+	    top = 0;
+	    bottom = 10000;
+	}
+	scrollTop = top;
+	scrollBottom = bottom+1;
+    }
+
+    /* Returns the top margin */
+    public function getTopMargin() : Int
+    {
+	return scrollTop;
+    }
+
+    /* Returns the bottom margin */
+    public function getBottomMargin() : Int
+    {
+	return scrollBottom;
+    }
+
+    /* Sets the current attribute to some value previously
+       gotten from getAttributes */
+    public function setAttributes(attrib : Int)
+    {
+	currentAttribute = attrib;
+    }
+
+    /* Returns the current width in characters, aka number of columns */
+    public function getWidth()
+    {
+	return columns;
+    }
+
+    /* Returns the current height in characters, aka number of rows */
+    public function getHeight()
+    {
+	return rows;
+    }
+
+    /* Returns the cursors X position (0..getWidth()-1). */
+    public function getCursX() : Int
+    {
+	return cursX;
+    }
+
+    /* Returns the cursors Y position (0..getHeight()-1). */
+    public function getCursY() : Int
+    {
+	return cursY;
+    }
+
+    /* Sets the auto wrap mode on or off. If on, the cursor will
+       move to the next line (and first column) when it reaches
+       the right margin */
+    public function setAutoWrapMode(val : Bool)
+    {
+	autoWrapMode = val;
+    }
+
+    /* Returns the auto wrap mode */
+    public function getAutoWrapMode() : Bool
+    {
+	return autoWrapMode;
+    }
+
+    /* Sets the cursor's X&Y character position */
+    public function setCurs(x, y)
+    {
+	if(x == cursX && y == cursY) return;
+	beginUpdate();
+	cursX = x;
+	cursY = y;
+    }
+
+    /* Returns the extra cursor's column */
+    public function getExtraCursColumn()
+    {
+	return extraCursX;
+    }
+
+    /* Returns the extra cursor's row */
+    public function getExtraCursRow()
+    {
+	return extraCursY;
+    }
+
+    /* Sets the extra cursors character position */
+    public function setExtraCurs(column, row)
+    {
+	extraCursX = column;
+	extraCursY = row;
+    }
+
+    /* Translates a local (pixel) X position into a character column */
+    public function getColumnFromLocalX(localX : Int) : Int
+    {
+	return Math.floor(localX / fontWidth);
+    }
+
+    /* Translates a local (pixel) Y position into a character row */
+    public function getRowFromLocalY(localY : Int) : Int
+    {
+	return Math.floor(localY / fontHeight);
+    }
+
+    /* Make the characters scroll up one row */
+    public function scrollUp()
+    {
+	beginUpdate();
+	scrollUp_();
+	if(cursY == 0) {
+	    cursorIsShown = false;
+	} else cursY--;
+	extraCursY--;
+    }
+
+    /* Moves the cursor down one row. If the bottom margin is reached,
+       the characters are scrolled up */
+    public function lineFeed()
+    {
+	beginUpdate();
+	lineFeed_();
+    }
+
+    /* Moves the cursor one step to the left and, if not already at
+       the first column, scrolls the characters, on the same line,
+       from the cursor's previous postion and to the end of the line
+       one step to the left. */
+    public function backspace()
+    {
+	beginUpdate();
+	if(--cursX < 0) {
+	    if(cursY == 0) {
+		cursX = 0;
+		return;
+	    }
+	    cursX = columns - 1;
+	    --cursY;
+	}
+	this.printChar_(-1);
+	if(--cursX < 0) {
+	    if(cursY == 0) {
+		cursX = 0;
+		return;
+	    }
+	    cursX = columns - 1;
+	    --cursY;
+	}
+    }
+
+    /* Copies a character (including its attributes) from one
+       position to another */
+    public function copyChar(fromX : Int, fromY : Int, toX : Int, toY : Int)
+    {
+	if(fromX == toX && fromY == toY) return;
+
+	var fromPos = fromX + fromY * columns;
+	var toPos = toX + toY * columns;
+
+	if(charBuffer[fromPos] == charBuffer[toPos] &&
+	   attrBuffer[fromPos] == attrBuffer[toPos]) return;
+
+	beginUpdate();
+
+	charBuffer[toPos] = charBuffer[fromPos];
+	attrBuffer[toPos] = attrBuffer[fromPos] | ATT_UPDATED;
+    }
+
+    /* Moves the cursor to the first column */
+    public function carriageReturn()
+    {
+	if(cursX == 0) return;
+	beginUpdate();
+	cursX = 0;
+    }
+
+    /* Sets the attributes to the default values */
+    public function setDefaultAttributes()
+    {
+	currentAttribute = 0;
+	setColoursDefault();
+    }
+
+    /* Turns on the bold attribute */
+    public function setBold()
+    {
+	currentAttribute |= ATT_BOLD;
+    }
+
+    /* Turns off the bold attribute */
+    public function resetBold()
+    {
+	currentAttribute &= ~ATT_BOLD;
+    }
+
+    /* Turns on the bright attribute */
+    public function setBright()
+    {
+	currentAttribute |= ATT_BRIGHT;
+    }
+
+    /* Turns off the bright attribute */
+    public function resetBright()
+    {
+	currentAttribute &= ~ATT_BRIGHT;
+    }
+
+    /* Turns on the inverse attribute */
+    public function setInverse()
+    {
+	currentAttribute |= ATT_INVERT;
+    }
+
+    /* Turns off the inverse attribute */
+    public function resetInverse()
+    {
+	currentAttribute &= ~ATT_INVERT;
+    }
+
+    /* Turns on the italics attribute */
+    public function setItalics()
+    {
+	currentAttribute |= ATT_ITALIC;
+    }
+
+    /* Turns off the italics attribute */
+    public function resetItalics()
+    {
+	currentAttribute &= ~ATT_ITALIC;
+    }
+
+    /* Turns on the underline attribute */
+    public function setUnderline()
+    {
+	currentAttribute |= ATT_UNDERLINE;
+    }
+
+    /* Turns off the underline attribute */
+    public function resetUnderline()
+    {
+	currentAttribute &= ~ATT_UNDERLINE;
+    }
+
+    /* Sets the background colour to c (0..255) */
+    public function setBgColour(c : Int)
+    {
+	if(c == -1) c = 0;
+	currentAttribute &= ~(255 << 8);
+	currentAttribute |= (255 & c) << 8;
+    }
+
+    /* Sets the foreground colour to c (0..255) */
+    public function setFgColour(c : Int)
+    {
+	if(c == -1) c = 3+8;
+	currentAttribute &= ~255;
+	currentAttribute |= (255 & c);
+    }
+
+    /* If true, the cursor will be drawn, otherwise not */
+    public function setCursorVisibility(visibility : Bool)
+    {
+	beginUpdate();
+	if(cursorShouldBeVisible != visibility) {
+	    cursorShouldBeVisible = visibility;
+	    if(cursorShouldBeVisible != cursorIsShown) {
+		if(cursorShouldBeVisible) {
+		    drawCursor();
+		} else {
+		    removeCursor_();
+		}
+	    }
+	}
+    }
+
+    /* The last row is the row that causes a scrollUp when the cursor
+       ends up at it */
+    public function getLastRow() : Int
+    {
+	var lastRow = rows;
+	if(scrollBottom < lastRow) lastRow = scrollBottom;
+	return lastRow;
+    }
+
+     /***********************************/
+    /* Private functions go below here */
+   /***********************************/
+
+    /* Redraws all characters of the character buffer that are
+       on screen */
     private function redrawVisibleCharacters()
     {
 	if(displayOffset < rows) {
@@ -699,301 +1139,17 @@ class CharBuffer extends Bitmap {
 	}
     }
 
-    public function scrollbackToBottom()
+
+    /* Makes the CharBuffer ready for being updated. */
+    private function beginUpdate()
     {
-	if(displayOffset == 0) return;
-
-	beginUpdate();
-	displayOffset = 0;
-	redrawVisibleCharacters();
-    }
-
-    public function scrollbackUp()
-    {
-	if(displayOffset == scrollbackSize) return;
-
-	beginUpdate();
-	removeSelection(); // XXX Until it works better...
-
-	displayOffset += rows>>1;
-	if(displayOffset > scrollbackSize)
-	    displayOffset = scrollbackSize;
-
-	drawScrollbackCharacters();
-
-	redrawVisibleCharacters();
-    }
-
-    public function scrollbackDown()
-    {
-	if(displayOffset == 0) return;
-
-	beginUpdate();
-	removeSelection(); // XXX Until it works better...
-
-	displayOffset -= rows>>1;
-	if(displayOffset <= 0)
-	    displayOffset = 0;
-	else {
-	    drawScrollbackCharacters();
-	}
-
-	redrawVisibleCharacters();
-    }
-
-    public function getAttributes()
-    {
-	return currentAttribute;
-    }
-
-    public function setMargins(top : Int, bottom : Int)
-    {
-	if(top < 0) {
-	    trace("setMargins: top too small: " + top);
-	    top = 0;
-	}
-	if(bottom >= rows) {
-	    if(bottom != 10000) trace("setMargins: bottom too large: " + bottom);
-	}
-	if(bottom <= top) {
-	    trace("setMargins: bottom <= top: top=" + top + "bottom=" + bottom);
-	    top = 0;
-	    bottom = 10000;
-	}
-	scrollTop = top;
-	scrollBottom = bottom+1;
-    }
-
-    public function getTopMargin() : Int
-    {
-	return scrollTop;
-    }
-
-    public function getBottomMargin() : Int
-    {
-	return scrollBottom;
-    }
-
-    public function setAttributes(attrib : Int)
-    {
-	currentAttribute = attrib;
-    }
-
-    public function getWidth()
-    {
-	return columns;
-    }
-
-    public function getHeight()
-    {
-	return rows;
-    }
-
-    public function getCursX() : Int
-    {
-	return cursX_;
-    }
-
-    public function getCursY() : Int
-    {
-	return cursY_;
-    }
-
-    public function setAutoWrapMode(val : Bool)
-    {
-	autoWrapMode = val;
-    }
-
-    public function getAutoWrapMode() : Bool
-    {
-	return autoWrapMode;
-    }
-
-
-    public function setCurs(x, y)
-    {
-	if(x == cursX_ && y == cursY_) return;
-	beginUpdate();
-	cursX_ = x;
-	cursY_ = y;
-    }
-
-    public function getExtraCursX()
-    {
-	return extraCursX;
-    }
-
-    public function getExtraCursY()
-    {
-	return extraCursY;
-    }
-
-    public function setExtraCurs(x, y)
-    {
-	extraCursX = x;
-	extraCursY = y;
-    }
-
-    public function getColumn(localX : Int) : Int
-    {
-	return Math.floor(localX / fontWidth);
-    }
-
-    public function getRow(localY : Int) : Int
-    {
-	return Math.floor(localY / fontHeight);
-    }
-
-    public function scrollUp()
-    {
-	beginUpdate();
-	scrollUp_();
-	if(cursY_ == 0) {
-	    cursorIsShown = false;
-	} else cursY_--;
-	extraCursY--;
-    }
-
-    public function lineFeed()
-    {
-	beginUpdate();
-	lineFeed_();
-    }
-
-    public function backspace()
-    {
-	beginUpdate();
-	if(--cursX_ < 0) {
-	    if(cursY_ == 0) {
-		cursX_ = 0;
-		return;
-	    }
-	    cursX_ = columns - 1;
-	    --cursY_;
-	}
-	this.printChar_(-1);
-	if(--cursX_ < 0) {
-	    if(cursY_ == 0) {
-		cursX_ = 0;
-		return;
-	    }
-	    cursX_ = columns - 1;
-	    --cursY_;
+	if(!gotPreviousInput) {
+	    gotPreviousInput = true;
+	    this.bitmapData.lock();
+	    removeCursor_();
 	}
     }
 
-
-    public function copyChar(fromX : Int, fromY : Int, toX : Int, toY : Int)
-    {
-	if(fromX == toX && fromY == toY) return;
-
-	var fromPos = fromX + fromY * columns;
-	var toPos = toX + toY * columns;
-
-	if(charBuffer[fromPos] == charBuffer[toPos] &&
-	   attrBuffer[fromPos] == attrBuffer[toPos]) return;
-
-	beginUpdate();
-
-	charBuffer[toPos] = charBuffer[fromPos];
-	attrBuffer[toPos] = attrBuffer[fromPos] | ATT_UPDATED;
-    }
-
-    public function carriageReturn()
-    {
-	if(cursX_ == 0) return;
-	beginUpdate();
-	cursX_ = 0;
-    }
-
-    public function setDefaultAttributes()
-    {
-	currentAttribute = 0;
-	setColoursDefault();
-    }
-
-    public function setBold()
-    {
-	currentAttribute |= ATT_BOLD;
-    }
-
-    public function resetBold()
-    {
-	currentAttribute &= ~ATT_BOLD;
-    }
-
-    public function setBright()
-    {
-	currentAttribute |= ATT_BRIGHT;
-    }
-
-    public function resetBright()
-    {
-	currentAttribute &= ~ATT_BRIGHT;
-    }
-
-    public function setInverse()
-    {
-	currentAttribute |= ATT_INVERT;
-    }
-
-    public function resetInverse()
-    {
-	currentAttribute &= ~ATT_INVERT;
-    }
-
-    public function setItalics()
-    {
-	currentAttribute |= ATT_ITALIC;
-    }
-
-    public function resetItalics()
-    {
-	currentAttribute &= ~ATT_ITALIC;
-    }
-
-    public function setUnderline()
-    {
-	currentAttribute |= ATT_UNDERLINE;
-    }
-
-    public function resetUnderline()
-    {
-	currentAttribute &= ~ATT_UNDERLINE;
-    }
-
-    public function setBgColour(c : Int)
-    {
-	if(c == -1) c = 0;
-	currentAttribute &= ~(255 << 8);
-	currentAttribute |= (255 & c) << 8;
-    }
-
-    public function setFgColour(c : Int)
-    {
-	if(c == -1) c = 3+8;
-	currentAttribute &= ~255;
-	currentAttribute |= (255 & c);
-    }
-
-    public function setCursorVisibility(visibility : Bool)
-    {
-	beginUpdate();
-	if(cursorShouldBeVisible != visibility) {
-	    cursorShouldBeVisible = visibility;
-	    if(cursorShouldBeVisible != cursorIsShown) {
-		if(cursorShouldBeVisible) {
-		    drawCursor();
-		} else {
-		    removeCursor_();
-		}
-	    }
-	}
-    }
-
-     /***********************************/
-    /* Private functions go below here */
-   /***********************************/
 
     private function removeSelection()
     {
@@ -1028,20 +1184,11 @@ class CharBuffer extends Bitmap {
 		attrBuffer[x + y*columns] |= ATT_UPDATED;
     }
 
-    /* The last row is the row that causes a scrollUp when the cursor
-       ends up at it */
-    public function getLastRow() : Int
-    {
-	var lastRow = rows;
-	if(scrollBottom < lastRow) lastRow = scrollBottom;
-	return lastRow;
-    }
-
     private function drawCursor() {
 	if(!cursorIsShown) {
-	    var y = cursY_ + displayOffset;
+	    var y = cursY + displayOffset;
 	    if(y >= rows) return;
-	    var position = new Point(cursX_ * fontWidth, y * fontHeight);
+	    var position = new Point(cursX * fontWidth, y * fontHeight);
 	    var colorTransform = new ColorTransform(
 		    -1,
 		    -1,
@@ -1283,24 +1430,24 @@ class CharBuffer extends Bitmap {
 
     private function printChar_(b : Int)
     {
-	if(cursX_ >= columns) {
+	if(cursX >= columns) {
 	    if(autoWrapMode) {
-		cursX_ = 0;
+		cursX = 0;
 		lineFeed_();
 	    } else {
-		cursX_ = columns - 1;
+		cursX = columns - 1;
 	    }
 	}
-	printCharAt_(b, cursX_++, cursY_);
+	printCharAt_(b, cursX++, cursY);
     }
 
     private function insertChar_(b : Int)
     {
-	if(cursX_ >= columns) {
-	    cursX_ = 0;
+	if(cursX >= columns) {
+	    cursX = 0;
 	    lineFeed_();
 	}
-	insertCharAt_(b, cursX_++, cursY_);
+	insertCharAt_(b, cursX++, cursY);
     }
 
     public function printCharWithAttribute_(b : Int, attrib : Int)
@@ -1420,15 +1567,15 @@ class CharBuffer extends Bitmap {
     private function lineFeed_()
     {
 	var lastRow = getLastRow();
-	cursY_++;
-	if(cursY_ == lastRow) {
-	    cursY_ = lastRow-1;
+	cursY++;
+	if(cursY == lastRow) {
+	    cursY = lastRow-1;
 	    if(extraCursY >= scrollTop &&
 	       extraCursY < lastRow)
 	    	extraCursY--;
 	    scrollUp_();
-	} else if(cursY_ >= rows) {
-	    cursY_ = rows-1;
+	} else if(cursY >= rows) {
+	    cursY = rows-1;
 	}
     }
 
