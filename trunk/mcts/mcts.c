@@ -2859,6 +2859,7 @@ process_line(int fd, char *line)
             !strcasecmp("help", line)) {
         simple_write(fd,
                 "Commands: \r\n"
+		"cat [<maxsize>] - sends the test.txt file (up to byte <maxsize>)\r\n"
                 "colourshow - show the 16 ansi colours.\r\n"
                 "colourshow256 - show the 256 xterm colours.\r\n"
                 "eall <text> - sends text to all connected clients (without a prompt afterwards).\r\n"
@@ -2881,14 +2882,17 @@ process_line(int fd, char *line)
                 );
     } else if(!strcasecmp("cat", line)) {
 	int max = atoi(args);
+	if(!max) max = 1<<30;
 	int f = open("test.txt", O_RDONLY);
-	if(!f) perror("nethack.txt");
-	else {
+	if(!f) {
+	    perror("test.txt");
+	    simple_write(fd, "Could not find test.txt\r\n");
+	} else {
 	    char buff[4096];
 	    int len;
 	    while(max && (len = read(f, buff, sizeof(buff))) > 0) {
 		int i;
-		for(i = 0; i < len && --max; i++) {
+		for(i = 0; i < len && max--; i++) {
 		    if(buff[i] == '\n') {
 			server_write(fd, "\r\n", 2, 0);
 		    } else server_write(fd, buff+i, 1, 0);
