@@ -21,11 +21,14 @@ and only to the same server as it was downloaded from.<br></br>
 Later versions of the flash player need to have downloaded a policy
 file from the server it wants to connect to. That policy file should
 say which ports the client is allowed to connect to and from where
-the client must have be downloaded for it to be allowed to connect.
+the client must have been downloaded for it to be allowed to connect.
 </p>
 
 <p>
-The policy file should list every server that the client can be downloaded from and wildcards (*) can be used instead of exakt names. That is use "*.example.com" to allow the client to be downloaded from both "one.example.com" and "two.example.com".
+The policy file should list every server that the client can be
+downloaded from and wildcards (*) can be used instead of exakt names.
+That is, use "*.example.com" to allow the client to be downloaded from
+both "one.example.com" and "two.example.com".
 </p>
 
 <p>
@@ -40,19 +43,26 @@ in the beginning of the soiled.html file to your server's name and
 the mud server's port number.
 </p>
 <p>
-If the server you connect to is run in char-by-char mode, change the localEdit setting
-to "off", or remove it.
+If the server you connect to is run in char-by-char mode, change
+the localEdit setting to "off" in the html file (or remove it).
 </p>
 <p>
-With the distribution there is also a template policy file; misc/flashpolicy.xml.
+With the distribution there is also a template policy file;
+<a href="../misc/flashpolicy.xml">misc/flashpolicy.xml</a>.<br>
 Edit it to list the domains where the client might be downloaded from
 and the mud-server port(s) there the client(s) should connect.<br></br>
+
 When a TCP connection is done to port 843 on the mud-server, that file
 should be sent without any extra headers. If the server uses inetd,
 this line might work:<br></br>
+
 <code>843  stream  tcp     nowait  USERIDHERE    /bin/cat /bin/cat /ABSOLUTE/PATH/TO/flashpolicy.xml</code>
 <br></br>
-For OS X, there is a misc/soiled.plist file for launchd to use to serve the file (its path to the policy file needs to be edited before use).
+
+For OS X, there is a
+<a href="../misc/soiled.plist">misc/soiled.plist</a>
+file for launchd to use to serve the file (its path to the policy file
+needs to be edited before use).<br>
 <code>sudo launchctl load soiled.plist</code> should add it, I think...<br></br>
 More information about launchd can be read <a href="http://developer.apple.com/macosx/launchd.html">here</a>.
 </p>
@@ -61,9 +71,11 @@ More information about launchd can be read <a href="http://developer.apple.com/m
 <h2> Trouble shooting </h2>
 
 <p>
-First of all, does the client connect at all? If it says "Got IO Error: Error #2031",
-then it has not been able to connect to the server. Maybe the server's name or port-number is wrong?
-The server name should be written in full, that is "server.example.com", not just "server" in the html file.
+First of all, does the client connect at all? If it says "Got IO Error:
+Error #2031", then it has not been able to connect to the server.<br>
+Maybe the server's name or port-number is wrong?<br>
+The server name should be written in full, that is "server.example.com",
+not just "server" in the html file.
 </p>
 
 <p>
