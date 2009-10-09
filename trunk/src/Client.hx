@@ -27,6 +27,8 @@ import flash.text.TextFieldType;
 import flash.text.TextFieldAutoSize;
 import flash.events.TextEvent;
 
+import flash.system.Security;
+
 /* The main class, it sets up the other classes,
    routes the I/O and GUI events to the other classes.
 */
@@ -184,12 +186,17 @@ class Client {
     /* Connect to the configured server address and port */
     static function connect()
     {
-	var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
-	vt100.reset();
-	charBuffer.appendText("\n\nConnecting to " +
-	                 params.s + ":" + params.p + "... ");
-	telnet = new Telnet(vt100, params.s, Std.parseInt(params.p));
-	telnet.addEventListener("close", onClose);
+	if(Security.sandboxType != Security.REMOTE &&
+	   Security.sandboxType != Security.LOCAL_WITH_NETWORK) {
+	    charBuffer.appendText("\n\nThis client was not loaded from a HTTP server, so it can not connect to the network.\nThe sandbox type is: " + Security.sandboxType);
+	} else {
+	    var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
+	    vt100.reset();
+	    charBuffer.appendText("\n\nConnecting to " +
+		    params.s + ":" + params.p + "... ");
+	    telnet = new Telnet(vt100, params.s, Std.parseInt(params.p));
+	    telnet.addEventListener("close", onClose);
+	}
     }
 
     /* Send a byte to the server */
