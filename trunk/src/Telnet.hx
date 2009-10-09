@@ -615,6 +615,7 @@ class Telnet extends flash.events.EventDispatcher {
     {
 	var v = new flash.events.Event("close");
 	this.dispatchEvent(v);
+	s.close();
     }
 
     private function gotConnect(o : Dynamic)
