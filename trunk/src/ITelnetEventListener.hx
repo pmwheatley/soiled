@@ -21,7 +21,7 @@
    events from the Telnet class.
    These functions are called by Telnet when it has detected 
    commands in the protocol stream */
-interface TelnetEventListener {
+interface ITelnetEventListener {
 
     /* Tells the client if the server is supposed to echo entered
        text or not. */

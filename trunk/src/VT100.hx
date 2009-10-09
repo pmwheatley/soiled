@@ -32,7 +32,7 @@ import flash.events.KeyboardEvent;
    It also understands some of the xterm extensions and some VT102 and VT220
    commands.
 */
-class VT100 implements TelnetEventListener,
+class VT100 implements ITelnetEventListener,
             implements IVtParserListener
 {
     private inline static var UTF_ERROR = 0xFFFD;
@@ -193,7 +193,7 @@ class VT100 implements TelnetEventListener,
     }
 
     /**********************************************************************/
-    /* From TelnetEventListener                                           */
+    /* From ITelnetEventListener                                           */
     /**********************************************************************/
 
     // Appends local text.

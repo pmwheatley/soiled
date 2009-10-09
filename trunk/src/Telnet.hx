@@ -91,7 +91,7 @@ class Telnet extends flash.events.EventDispatcher {
     private var naws : Bool;
 
     private var s : Socket;
-    private var eventListener : TelnetEventListener;
+    private var eventListener : ITelnetEventListener;
     private var inputState : EnuTelnetInputState;
 
     private var sbOption : StringBuf;
@@ -101,7 +101,7 @@ class Telnet extends flash.events.EventDispatcher {
     private var optionsUs : Array<EnuTelnetOptionState>;
     private var optionsHim : Array<EnuTelnetOptionState>;
 
-    public function new(eventListener : TelnetEventListener, server : String, port : Int)
+    public function new(eventListener : ITelnetEventListener, server : String, port : Int)
     {
 	super();
 
