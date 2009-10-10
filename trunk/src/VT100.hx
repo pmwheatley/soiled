@@ -61,7 +61,7 @@ class VT100 implements ITelnetEventListener,
     private var charsets : Array<Int>; // Current designation for G0 .. G3
     private var nextCharacterCharset : Int;
 
-    var savedAttribs : Int;
+    var savedAttribs : CharAttributes;
     var savedCursX : Int;
     var savedCursY : Int;
     var savedDecomMode : Bool;
@@ -79,9 +79,9 @@ class VT100 implements ITelnetEventListener,
     private var outputAfterPrompt : Int;
 
     private var oldPromptString : String;
-    private var oldPromptAttribute : Array<Int>;
+    private var oldPromptAttribute : Array<CharAttributes>;
     private var newPromptString : StringBuf;
-    private var newPromptAttribute : Array<Int>;
+    private var newPromptAttribute : Array<CharAttributes>;
 
     // Have a prompt been drawn be us, so we must remove it?
     private var promptHasBeenDrawn : Bool;
@@ -108,8 +108,8 @@ class VT100 implements ITelnetEventListener,
 	    vtParser = new VtParser(this);
 	    cb = charBuffer;
 	    newPromptString = new StringBuf();
-	    oldPromptAttribute = new Array<Int>();
-	    newPromptAttribute = new Array<Int>();
+	    oldPromptAttribute = new Array<CharAttributes>();
+	    newPromptAttribute = new Array<CharAttributes>();
 
 	    config = new Config();
 
@@ -293,7 +293,7 @@ class VT100 implements ITelnetEventListener,
 	    cb.carriageReturn();
 	    cb.setExtraCurs(cb.getCursX(), cb.getCursY());
 	    newPromptString = new StringBuf();
-	    newPromptAttribute = new Array<Int>();
+	    newPromptAttribute = new Array<CharAttributes>();
 	    receivedCr = false;
 	}
     }
@@ -405,9 +405,9 @@ class VT100 implements ITelnetEventListener,
     // DEC Screen Alignment Test
     private function handle_DECALN()
     {
-	savedAttribs = cb.getAttributes();
-	cb.setDefaultAttributes();
-	cb.setFgColour(2);
+	var savedAttribs = cb.getAttributes().clone();
+	cb.getAttributes().setDefaultAttributes();
+	cb.getAttributes().setFgColour(2);
 	for(y in 0...cb.getHeight())
 	    for(x in 0...cb.getWidth())
 		cb.printCharAt(69, x, y);
@@ -424,7 +424,7 @@ class VT100 implements ITelnetEventListener,
 
     private function handle_DECSC()
     {
-	savedAttribs = cb.getAttributes();
+	savedAttribs = cb.getAttributes().clone();
 	savedCursX = cb.getCursX();
 	savedCursY = cb.getCursY();
 	savedAutoWrapMode = cb.getAutoWrapMode();
@@ -712,40 +712,40 @@ class VT100 implements ITelnetEventListener,
 			params[i] == 38 && 
 			params[i+1] == 5) {
 		    i += 2;
-		    cb.setFgColour(params[i]);
+		    cb.getAttributes().setFgColour(params[i]);
 		} else if(i + 3 <= nParams &&
 			params[i] == 48 && 
 			params[i+1] == 5) {
 		    i += 2;
-		    cb.setBgColour(params[i]);
+		    cb.getAttributes().setBgColour(params[i]);
 		} else {
 		    var b = params[i];
 		    if(b >= 30 && b <= 37) {
-			cb.setFgColour(b-30);
+			cb.getAttributes().setFgColour(b-30);
 		    } else if(b >= 40 && b <= 47) {
-			cb.setBgColour(b-40);
+			cb.getAttributes().setBgColour(b-40);
 		    } else if(b >= 90 && b <= 97) {
-			cb.setFgColour(b-82);
+			cb.getAttributes().setFgColour(b-82);
 		    } else if(b >= 100 && b <= 107) {
-			cb.setBgColour(b-92);
+			cb.getAttributes().setBgColour(b-92);
 		    } else if(b == 0) {
 			setColoursDefault();
 		    } else if(b == 1) {
-			cb.setBright();
+			cb.getAttributes().setBright();
 		    } else if(b == 4) {
-			cb.setUnderline();
+			cb.getAttributes().setUnderline();
 		    } else if(b == 5) {
-			cb.setBold();
+			cb.getAttributes().setBold();
 		    } else if(b == 7) {
-			cb.setInverse();
+			cb.getAttributes().setInverted();
 		    } else if(b == 22) {
-			cb.resetBright();
+			cb.getAttributes().resetBright();
 		    } else if(b == 24) {
-			cb.resetUnderline();
+			cb.getAttributes().resetUnderline();
 		    } else if(b == 25) {
-			cb.resetBold();
+			cb.getAttributes().resetBold();
 		    } else if(b == 27) {
-			cb.resetInverse();
+			cb.getAttributes().resetInverted();
 		    } // else trace("PARAM: "+b);
 		}
 		i++;
@@ -1148,7 +1148,7 @@ class VT100 implements ITelnetEventListener,
 	maybeRemovePrompt();
 	b = translateCharset(b);
 	newPromptString.addChar(b);
-	newPromptAttribute.push(cb.getAttributes());
+	newPromptAttribute.push(cb.getAttributes().clone());
 	latestPrintableChar = b;
 	if(irmMode) cb.insertChar(b);
 	else cb.printChar(b);
@@ -1260,7 +1260,7 @@ class VT100 implements ITelnetEventListener,
 		// If this is just a timeout prompt, don't start on a new prompt
 		// in case there is more comming due to lag.
 		newPromptString = new StringBuf();
-		newPromptAttribute = new Array<Int>();
+		newPromptAttribute = new Array<CharAttributes>();
 	    }
 	    // This prompt should not be cleared if it is created due to a timeout.
 	    // In that case it can just as well be normal text and lag.
@@ -1282,9 +1282,10 @@ class VT100 implements ITelnetEventListener,
 
     private function setColoursDefault()
     {
-	cb.setDefaultAttributes();
-	cb.setBgColour(0);
-	cb.setFgColour(2);
+	var attr = cb.getAttributes();
+	attr.setDefaultAttributes();
+	attr.setBgColour(0);
+	attr.setFgColour(2);
     }
 
     private function drawPrompt()

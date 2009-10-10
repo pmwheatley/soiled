@@ -12,3 +12,4 @@ VT100
 Telnet
 CompileTime
 CharBuffer
+CharAttributes

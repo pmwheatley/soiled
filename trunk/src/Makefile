@@ -19,7 +19,10 @@ apidoc/index.html: soiled.swf.xml
 CompileTime.hx:
 	date '+class CompileTime { public static var time = "%Y-%m-%d %H:%M:%S";}'> CompileTime.hx
 
-soiled.swf soiled.swf.xml: CharBuffer.hx Client.hx CommandLineHandler.hx Config.hx IVtParserListener.hx Telnet.hx ITelnetEventListener.hx VT100.hx VtParser.hx compile.hxml
+soiled.swf soiled.swf.xml: \
+		CharAttributes.hx CharBuffer.hx Client.hx CommandLineHandler.hx \
+		Config.hx ITelnetEventListener.hx IVtParserListener.hx Telnet.hx \
+		VT100.hx VtParser.hx compile.hxml
 	@echo Compiling soiled.swf
 	$(MAKE) CompileTime.hx
 	haxe compile.hxml

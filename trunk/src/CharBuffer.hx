@@ -34,50 +34,10 @@ import flash.utils.Dictionary;
    methods to move the cursor etc.
 
    Positions starts at 0 in this class.
-
-   This class should really be split up into smaller classes,
-   but most features of it are dependant on the other features.
 */
 class CharBuffer extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
-
-    /*
-       The character attributes bits are:
-       0..7 fg-colour (xterm 256-colour format).
-       8..15 bg-colour.
-       16..30 special attributes, defined below:
-     */
-    private static inline var ATT_BRIGHT = 1 << 16;
-    private static inline var ATT_DIM = 1 << 17;
-    private static inline var ATT_INVERT = 1 << 18;
-    private static inline var ATT_STRIKE = 1 << 19;
-    private static inline var ATT_UNDERLINE = 1 << 20;
-    private static inline var ATT_ITALIC = 1 << 21;
-    private static inline var ATT_BOLD = 1 << 22;
-
-    /* If this attribute is set, the character needs to redrawn */
-    private static inline var ATT_UPDATED = 1 << 30;
-
-    /* The 0-15 DEC-colours in R G B format. */
-    private static var colours : Array<Int> = [
-	0x000000, // Black
-	0x800000, // Red
-	0x008000, // Green
-	0x808000, // Yellow
-	0x000080, // Blue
-	0x800080, // Magenta
-	0x408080, // Cyan
-	0xC0C0C0, // light gray
-	0x000000, // Bright-Black
-	0xFF0000, // Bright-Red
-	0x00FF00, // Bright-Green
-	0xFFFF00, // Bright-Yellow
-	0x0000FF, // Bright-Blue
-	0xFF00FF, // Bright-Purple
-	0x80FFFF, // Bright-Cyan
-	0xFFFFFF, // Bright-light gray
-	];
 
     /* The size of the font in whole pixels: */
     private var fontHeight : Int;
@@ -99,13 +59,13 @@ class CharBuffer extends Bitmap {
        x&y character-coordinates are translated like x+y*WIDTH into an index
        in the array */
     private var charBuffer : Array<Int>;
-    private var attrBuffer : Array<Int>;
+    private var attrBuffer : Array<CharAttributes>;
 
     /* An array of arrays of previously described lines.
        Each line is stored in its own array.
     */
     private var scrollbackCharacters : Array<Array<Int>>;
-    private var scrollbackAttributes : Array<Array<Int>>;
+    private var scrollbackAttributes : Array<Array<CharAttributes>>;
     /* The length of the previous lines (might not be the same
        as the current screen width) */
     private var scrollbackLineLength : Array<Int>;
@@ -132,9 +92,12 @@ class CharBuffer extends Bitmap {
     /* The X & Y coordinate of the cursor */
     private var cursX : Int;
     private var cursY : Int;
+
+    private var defaultAttributes : CharAttributes;
+
     /* The current character attribute to use when drawing
        new characters */
-    private var currentAttribute : Int;
+    private var currentAttributes : CharAttributes;
 
     /* The "extra cursor" position. A position that is moved
        if the location it points to is scrolling.
@@ -192,8 +155,12 @@ class CharBuffer extends Bitmap {
 	    var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
 	    if(params.debug != null) {
 		debug = true;
-		colours[0] = 0x333333;
+		CharAttributes.setDebug();
 	    }
+
+	    defaultAttributes = new CharAttributes();
+	    defaultAttributes.setFgColour(2);
+	    currentAttributes = defaultAttributes.clone();
 
 	    scrollbackCharacters = new Array();
 	    scrollbackAttributes = new Array();
@@ -211,9 +178,9 @@ class CharBuffer extends Bitmap {
 	    rows = Math.floor(this.height / fontHeight);
 
 	    charBuffer = new Array<Int>();
-	    attrBuffer = new Array<Int>();
+	    attrBuffer = new Array<CharAttributes>();
 	    charBuffer[columns * rows-1] = 0;
-	    attrBuffer[columns * rows-1] = 0;
+	    attrBuffer[columns * rows-1] = null;
 
 	    initFont();
 
@@ -392,7 +359,7 @@ class CharBuffer extends Bitmap {
 
     /* Prints the character b, with attributes attrib, on the screen
        and moves the cursor. */
-    public function printCharWithAttribute(b : Int, attrib : Int)
+    public function printCharWithAttribute(b : Int, attrib : CharAttributes)
     {
 	beginUpdate();
 	printCharWithAttribute_(b, attrib);
@@ -412,7 +379,7 @@ class CharBuffer extends Bitmap {
 	cursorIsShown = false;
 	cursorShouldBeVisible = true;
 	autoWrapMode = true;
-	setDefaultAttributes();
+	currentAttributes.setDefaultAttributes();
 	scrollTop = 0;
 	scrollBottom = 10000;
 	clear();
@@ -425,7 +392,7 @@ class CharBuffer extends Bitmap {
 	removeSelection();
 	for(i in 0...rows*columns) {
 	    charBuffer[i] = 0;
-	    attrBuffer[i] = 2 | ATT_UPDATED;
+	    attrBuffer[i] = defaultAttributes.clone();
 	}
     }
 
@@ -438,7 +405,7 @@ class CharBuffer extends Bitmap {
 	if(gotPreviousInput) {
 	    for(y in 0...rows)
 		for(x in 0...columns) {
-		    if((attrBuffer[x + y*columns] & ATT_UPDATED) != 0) {
+		    if(attrBuffer[x + y*columns].isUpdated()) {
 			drawCharAt(x, y);
 		    }
 		}
@@ -469,29 +436,30 @@ class CharBuffer extends Bitmap {
 	displayOffset = 0;
 
 	var newCharBuffer : Array<Int> = null;
-	var newAttrBuffer : Array<Int> = null;
+	var newAttrBuffer : Array<CharAttributes> = null;
 	if(newSize) {
 	    newCharBuffer = new Array();
 	    newAttrBuffer = new Array();
 	    newCharBuffer[newRows * newColumns -1] = 0;
-	    newAttrBuffer[newRows * newColumns -1] = 0;
+	    newAttrBuffer[newRows * newColumns -1] = null;
 	    for(y in 0...newRows)
 		for(x in 0...newColumns) {
 
 		    if(y >= rows || x >= columns) {
-			newAttrBuffer[x + y*newColumns]= 2 | ATT_UPDATED;
+			newAttrBuffer[x + y*newColumns] = defaultAttributes.clone();
 		    } else {
 			newCharBuffer[x + y*newColumns] = charBuffer[x + y*columns];
-			newAttrBuffer[x + y*newColumns] = attrBuffer[x + y*columns] | ATT_UPDATED;
+			newAttrBuffer[x + y*newColumns] = attrBuffer[x + y*columns];
+			newAttrBuffer[x + y*newColumns].setUpdated();
 		    }
 		}
 	} else {
 	    for(y in 0...newRows)
 		for(x in 0...newColumns)
-		    attrBuffer[x + y*newColumns] |= ATT_UPDATED;
+		    attrBuffer[x + y*newColumns].setUpdated();
 	}
 
-	var nb = new BitmapData(w, h, false, colours[0]);
+	var nb = new BitmapData(w, h, false, CharAttributes.getRGBColour(0));
 	nb.lock();
 	this.bitmapData = nb;
 
@@ -575,7 +543,7 @@ class CharBuffer extends Bitmap {
 	beginUpdate();
 	for(y in from ... to+1)
 	    for(x in 0 ... columns)
-		attrBuffer[x + y*columns] |= ATT_UPDATED;
+		attrBuffer[x + y*columns].setUpdated();
 	endUpdate();
     }
 
@@ -615,7 +583,7 @@ class CharBuffer extends Bitmap {
 	for(y in startOfSelectionRow ... endOfSelectionRow+1) {
 	    if(markSelected)
 		for(x in 0 ... columns)
-		    attrBuffer[x + y*columns] |= ATT_UPDATED;
+		    attrBuffer[x + y*columns].setUpdated();
 	    var from = 0;
 	    var to = columns;
 	    if(y == startOfSelectionRow) from=startOfSelectionColumn;
@@ -803,7 +771,7 @@ class CharBuffer extends Bitmap {
     /* Returns a value that represents the current attributes. */
     public function getAttributes()
     {
-	return currentAttribute;
+	return currentAttributes;
     }
 
     /* Sets the top and bottom scroll margins.
@@ -840,11 +808,9 @@ class CharBuffer extends Bitmap {
 	return scrollBottom;
     }
 
-    /* Sets the current attribute to some value previously
-       gotten from getAttributes */
-    public function setAttributes(attrib : Int)
+    public function setAttributes(attrib : CharAttributes)
     {
-	currentAttribute = attrib;
+	currentAttributes = attrib;
     }
 
     /* Returns the current width in characters, aka number of columns */
@@ -985,7 +951,7 @@ class CharBuffer extends Bitmap {
 	beginUpdate();
 
 	charBuffer[toPos] = charBuffer[fromPos];
-	attrBuffer[toPos] = attrBuffer[fromPos] | ATT_UPDATED;
+	attrBuffer[toPos] = attrBuffer[fromPos].clone();
     }
 
     /* Moves the cursor to the first column */
@@ -994,89 +960,6 @@ class CharBuffer extends Bitmap {
 	if(cursX == 0) return;
 	beginUpdate();
 	cursX = 0;
-    }
-
-    /* Sets the attributes to the default values */
-    public function setDefaultAttributes()
-    {
-	currentAttribute = 0;
-	setColoursDefault();
-    }
-
-    /* Turns on the bold attribute */
-    public function setBold()
-    {
-	currentAttribute |= ATT_BOLD;
-    }
-
-    /* Turns off the bold attribute */
-    public function resetBold()
-    {
-	currentAttribute &= ~ATT_BOLD;
-    }
-
-    /* Turns on the bright attribute */
-    public function setBright()
-    {
-	currentAttribute |= ATT_BRIGHT;
-    }
-
-    /* Turns off the bright attribute */
-    public function resetBright()
-    {
-	currentAttribute &= ~ATT_BRIGHT;
-    }
-
-    /* Turns on the inverse attribute */
-    public function setInverse()
-    {
-	currentAttribute |= ATT_INVERT;
-    }
-
-    /* Turns off the inverse attribute */
-    public function resetInverse()
-    {
-	currentAttribute &= ~ATT_INVERT;
-    }
-
-    /* Turns on the italics attribute */
-    public function setItalics()
-    {
-	currentAttribute |= ATT_ITALIC;
-    }
-
-    /* Turns off the italics attribute */
-    public function resetItalics()
-    {
-	currentAttribute &= ~ATT_ITALIC;
-    }
-
-    /* Turns on the underline attribute */
-    public function setUnderline()
-    {
-	currentAttribute |= ATT_UNDERLINE;
-    }
-
-    /* Turns off the underline attribute */
-    public function resetUnderline()
-    {
-	currentAttribute &= ~ATT_UNDERLINE;
-    }
-
-    /* Sets the background colour to c (0..255) */
-    public function setBgColour(c : Int)
-    {
-	if(c == -1) c = 0;
-	currentAttribute &= ~(255 << 8);
-	currentAttribute |= (255 & c) << 8;
-    }
-
-    /* Sets the foreground colour to c (0..255) */
-    public function setFgColour(c : Int)
-    {
-	if(c == -1) c = 3+8;
-	currentAttribute &= ~255;
-	currentAttribute |= (255 & c);
     }
 
     /* If true, the cursor will be drawn, otherwise not */
@@ -1114,7 +997,7 @@ class CharBuffer extends Bitmap {
     {
 	if(displayOffset < rows) {
 	    for(i in 0...(rows-displayOffset)*columns) {
-		attrBuffer[i] |= ATT_UPDATED;
+		attrBuffer[i].setUpdated();
 	    }
 	}
 	endUpdate();
@@ -1124,6 +1007,7 @@ class CharBuffer extends Bitmap {
     {
 	var end = displayOffset;
 	if(displayOffset > rows) end = rows;
+
 	for(y in 0 ... end) {
 	    var pos = (scrollbackFirst + scrollbackSize - displayOffset + y) % MAX_SCROLLBACK_SIZE;
 	    var width = scrollbackLineLength[pos];
@@ -1133,7 +1017,7 @@ class CharBuffer extends Bitmap {
 			              scrollbackAttributes[pos][x],
 				      x, y);
 		} else {
-		    drawCharAndAttrAt(32, 2, x, y);
+		    drawCharAndAttrAt(32, defaultAttributes, x, y);
 		}
 	    }
 	}
@@ -1181,7 +1065,7 @@ class CharBuffer extends Bitmap {
 
 	for(y in startOfSelectionRow ... endOfSelectionRow+1)
 	    for(x in 0 ... columns)
-		attrBuffer[x + y*columns] |= ATT_UPDATED;
+		attrBuffer[x + y*columns].setUpdated();
     }
 
     private function drawCursor() {
@@ -1212,46 +1096,6 @@ class CharBuffer extends Bitmap {
 	    drawCursor();
 	    cursorIsShown = false;
 	}
-    }
-
-    // Converts a 256-colour to a 3-byte colour.
-    // Only dim & bright are looked at from the attributes
-    // and they are only used for the 8 system colours.
-    private function getColour(c : Int, attributes : Int) : Int {
-	if(c < 16) {
-	    if(attributes & ATT_DIM != 0) {
-		if(attributes & ATT_BRIGHT == 0) {
-		    c = colours[c];
-		    c = c >> 1;
-		    c &= 0x8080;
-		    // Clear the top bits since they should not be set.
-		    return c;
-		}
-	    } else if(attributes & ATT_BRIGHT != 0) {
-		c += 8;
-	    }
-	    return colours[c];
-	}
-	c -= 16;
-	var r;
-	var g;
-	var b;
-	if(c < 216) {
-	    r = Math.floor(c / 36);
-	    g = Math.floor(c / 6) % 6;
-	    b = c % 6;
-	    r = Math.floor(255*r/6);
-	    g = Math.floor(255*g/6);
-	    b = Math.floor(255*b/6);
-	} else {
-	    c -= 216;
-	    // Gray-scale:
-	    c = Math.floor(((255-8)*c+8)/24);
-	    r = c;
-	    g = c;
-	    b = c;
-	}
-	return (r << 16) + (g << 8) + b;
     }
 
     private function updateFontBoundries(t)
@@ -1354,26 +1198,6 @@ class CharBuffer extends Bitmap {
 	return newBitmap;
     }
 
-    private function getFgColour(currentAttribute : Int) : Int
-    {
-	if((currentAttribute & ATT_INVERT) == 0) {
-	    var c = 255 & currentAttribute;
-	    return getColour(c, currentAttribute);
-	} else {
-	    return getColour(255 & (currentAttribute >> 8), 0);
-	}
-    }
-
-    private function getBgColour(currentAttribute : Int) : Int
-    {
-	if((currentAttribute & ATT_INVERT) != 0) {
-	    var c = 255 & currentAttribute;
-	    return getColour(c, currentAttribute);
-	} else {
-	    return getColour(255 & (currentAttribute >> 8), 0);
-	}
-    }
-
     private function storeTopLineInScrollbackBuffer()
     {
 	var last = 0;
@@ -1387,7 +1211,7 @@ class CharBuffer extends Bitmap {
 	var oldLineChars = new Array();
 	var oldLineAttribs = new Array();
 	oldLineChars[last-1] = 0;
-	oldLineAttribs[last-1] = 0;
+	oldLineAttribs[last-1] = null;
 	for(x in 0...last) {
 	    oldLineChars[x] = charBuffer[x];
 	    oldLineAttribs[x] = attrBuffer[x];
@@ -1423,8 +1247,6 @@ class CharBuffer extends Bitmap {
 	for(x in 0...columns) {
 	    var pos = lastRow*columns + x;
 	    printCharAt_(0, x, lastRow );
-	    // charBuffer[pos] = 0;
-	    // attrBuffer[pos] = ATT_UPDATED | currentAttribute;
 	}
     }
 
@@ -1450,21 +1272,21 @@ class CharBuffer extends Bitmap {
 	insertCharAt_(b, cursX++, cursY);
     }
 
-    public function printCharWithAttribute_(b : Int, attrib : Int)
+    public function printCharWithAttribute_(b : Int, attrib : CharAttributes)
     {
-	var oldAttrib = currentAttribute;
-	currentAttribute = attrib;
+	var oldAttrib = currentAttributes;
+	currentAttributes = attrib;
 	printChar_(b);
-	currentAttribute = oldAttrib;
+	currentAttributes = oldAttrib;
     }
 
     private inline function printCharAt_(b : Int, x : Int, y : Int)
     {
 	var pos = x + y*columns;
 	if((charBuffer[pos] != b) ||
-	   (currentAttribute != (attrBuffer[pos] & ~ATT_UPDATED))) {
+	   (!currentAttributes.equal(attrBuffer[pos]))) {
 	    charBuffer[pos] = b;
-	    attrBuffer[pos] = currentAttribute | ATT_UPDATED;
+	    attrBuffer[pos] = currentAttributes.clone();
 	}
     }
 
@@ -1475,9 +1297,9 @@ class CharBuffer extends Bitmap {
 	    copyChar_(columns-i-1, y, columns-i, y);
 	}
 	if((charBuffer[pos] != b) ||
-	   (currentAttribute != (attrBuffer[pos] & ~ATT_UPDATED))) {
+	   !currentAttributes.equal(attrBuffer[pos])) {
 	    charBuffer[pos] = b;
-	    attrBuffer[pos] = currentAttribute | ATT_UPDATED;
+	    attrBuffer[pos] = currentAttributes.clone();
 	}
     }
 
@@ -1485,21 +1307,31 @@ class CharBuffer extends Bitmap {
     { 
 	var pos = x + y*columns;
 	var b = charBuffer[pos];
-	attrBuffer[pos] &= ~ATT_UPDATED;
+	attrBuffer[pos].resetUpdated();
 
 	if(y + displayOffset < rows) {
-	    var currentAttribute = attrBuffer[pos];
-	    drawCharAndAttrAt(b, currentAttribute, x, y + displayOffset);
+	    var currentAttributes = attrBuffer[pos];
+	    drawCharAndAttrAt(b, currentAttributes, x, y + displayOffset);
 	}
     }
 
-    private function drawCharAndAttrAt(b : Int, currentAttribute : Int, x : Int, y : Int)
+    private inline function toggleInvert()
+    {
+	if(currentAttributes.isInverted())
+	    currentAttributes.resetInverted();
+	else
+	    currentAttributes.setInverted();
+    }
+
+    private function drawCharAndAttrAt(b : Int,
+	                               currentAttributes : CharAttributes,
+				       x : Int, y : Int)
     { 
 	var fStyle = 0;
 	if(b != -1) {
-	    if(currentAttribute & ATT_ITALIC != 0) fStyle |= 1;
-	    if(currentAttribute & ATT_UNDERLINE != 0) fStyle |= 2;
-	    if(currentAttribute & ATT_BOLD != 0) fStyle |= 4;
+	    if(currentAttributes.isItalic()) fStyle |= 1;
+	    if(currentAttributes.isUnderline()) fStyle |= 2;
+	    if(currentAttributes.isBold()) fStyle |= 4;
 	} else b = 32;
 
 	if(startOfSelectionX >= 0) {
@@ -1508,18 +1340,18 @@ class CharBuffer extends Bitmap {
 		    if(x >= startOfSelectionColumn) {
 			if(y == endOfSelectionRow) {
 			    if(x <= endOfSelectionColumn) {
-				currentAttribute ^= ATT_INVERT;
+				toggleInvert();
 			    }
 			} else {
-			    currentAttribute ^= ATT_INVERT;
+			    toggleInvert();
 			}
 		    }
 		} else if(y == endOfSelectionRow) {
 		    if(x <= endOfSelectionColumn) {
-			currentAttribute ^= ATT_INVERT;
+			toggleInvert();
 		    }
 		} else {
-		    currentAttribute ^= ATT_INVERT;
+		    toggleInvert();
 		}
 	    }
 	}
@@ -1547,8 +1379,8 @@ class CharBuffer extends Bitmap {
 
 	var position = new Point(x * fontWidth, y * fontHeight);
 
-	var lFg = getFgColour(currentAttribute);
-	var lBg = getBgColour(currentAttribute);
+	var lFg = currentAttributes.getFgColour();
+	var lBg = currentAttributes.getBgColour();
 
 	var fgR = lFg >> 16;
 	var fgG = 255 & (lFg >> 8);
@@ -1588,12 +1420,6 @@ class CharBuffer extends Bitmap {
 	   attrBuffer[fromPos] == attrBuffer[toPos]) return;
 
 	charBuffer[toPos] = charBuffer[fromPos];
-	attrBuffer[toPos] = attrBuffer[fromPos] | ATT_UPDATED;
-    }
-
-    private function setColoursDefault()
-    {
-	setBgColour(-1);
-	setFgColour(-1);
+	attrBuffer[toPos] = attrBuffer[fromPos].clone();
     }
 }
