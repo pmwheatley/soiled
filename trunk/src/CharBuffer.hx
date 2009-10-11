@@ -181,15 +181,7 @@ class CharBuffer extends Bitmap {
 	    charBuffer[columns * rows-1] = 0;
 	    attrBuffer[columns * rows-1] = null;
 
-	    var fontSizeStr = config.getVar("FONT_SIZE");
-	    var fontName = config.getVar("FONT_NAME");
-	    if(fontName == null) fontName = "Courier New";
-	    if(fontSizeStr == null) fontSizeStr = "15";
-
-	    var fontSize = Std.parseInt(fontSizeStr);
-	    if(fontSize < 8) fontSize = 8;
-
-	    initFont(fontName, fontSize);
+	    initFont(config.getFontName(), config.getFontSize());
 
 	    reset();
 	} catch ( ex : Dynamic ) {

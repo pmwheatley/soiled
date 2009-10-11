@@ -19,8 +19,10 @@
 
 import flash.net.SharedObject;
 
-/* The config class is responsible for loading/storing config values
-   and provide a container for them */
+/**
+  The config class is responsible for loading/storing config values
+   and provide a container for them.
+**/
 class Config
 {
 
@@ -71,6 +73,25 @@ class Config
     public function setVar(name : String, value : String) : Void
     {
 	vars.set(name, value);
+    }
+
+    /** Returns the configurable font name to use. **/
+    public function getFontName() : String
+    {
+	var fontName = getVar("FONT_NAME");
+	if(fontName == null) fontName = "Courier New";
+	return fontName;
+    }
+
+    /** Returns the configurable font size to use. **/
+    public function getFontSize() : Int
+    {
+	var fontSizeStr = getVar("FONT_SIZE");
+	if(fontSizeStr == null) fontSizeStr = "15";
+
+	var fontSize = Std.parseInt(fontSizeStr);
+	if(fontSize < 8) fontSize = 8;
+	return fontSize;
     }
 
     private function hashToString(hash : Hash<String>) : String
@@ -181,5 +202,4 @@ class Config
 	    stringToHash(sharedData.data.vars, vars);
 	}
     }
-
 }
