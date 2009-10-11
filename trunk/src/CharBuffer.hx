@@ -43,12 +43,11 @@ class CharBuffer extends Bitmap {
     private var fontHeight : Int;
     private var fontWidth : Int;
 
+    private var currentFontSize : Int;
+    private var currentFontName : String;
+
     /* A Rectangle that has the size of the font */
     private var fontCopyRect : Rectangle;
-
-    /* A bitmap containing the glyphs of the ISO-8859-1 characters.
-       It is generated in the initFont method */
-    private var fontBitmap : BitmapData;
 
     /* A dictionary mapping Unicode number to a bitmap describing its glyph.
        It is generated as needed */
@@ -182,14 +181,12 @@ class CharBuffer extends Bitmap {
 	    charBuffer[columns * rows-1] = 0;
 	    attrBuffer[columns * rows-1] = null;
 
-	    initFont();
+	    initFont("Courier New", 15);
 
 	    reset();
-
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
-
     }
 
     /* Write text to the screen where the cursor is and
@@ -416,14 +413,15 @@ class CharBuffer extends Bitmap {
     }
 
     /* Should be called when the CharBuffer is resized */
-    public function resize() : Bool
+    public function resize(?mustRedraw : Bool) : Bool
     {
 	var w = Math.floor(this.width);
 	var h = Math.floor(this.height);
 	var newColumns = Math.floor(this.width / fontWidth);
 	var newRows = Math.floor(this.height / fontHeight);
 
-	if(newColumns == columns &&
+	if(!mustRedraw &&
+           newColumns == columns &&
            newRows == rows &&
 	   w == this.bitmapData.width &&
 	   h == this.bitmapData.height) return false;
@@ -987,6 +985,12 @@ class CharBuffer extends Bitmap {
 	return lastRow;
     }
 
+    public function changeFont(fontName : String, size : Int)
+    {
+	initFont(fontName, size);
+	resize(true);
+    }
+
      /***********************************/
     /* Private functions go below here */
    /***********************************/
@@ -1109,10 +1113,35 @@ class CharBuffer extends Bitmap {
 	if(currHeight > fontHeight) fontHeight = currHeight;
     }
 
-    private function initFont()
+    private function initFont(fontName, fontSize)
     {
+	var format = new TextFormat();
+	format.size = fontSize;
+	format.font = fontName;
+	format.italic = true;
+	format.underline = true;
+
+	var oldFontWidth = fontWidth;
+	var oldFontHeight = fontHeight;
+	var t = new TextField();
+	t.defaultTextFormat = format;
+	t.backgroundColor = 0;
+	t.textColor = 0xFFFFFF;
+	t.antiAliasType = flash.text.AntiAliasType.ADVANCED;
+	t.text = "W";
+
 	fontWidth = 0;
 	fontHeight = 0;
+	updateFontBoundries(t);
+	if(fontWidth < 6 ||
+	   fontHeight < 6) {
+	    fontWidth = oldFontWidth;
+	    fontHeight = oldFontHeight;
+	    return;
+	}
+
+	currentFontName = fontName;
+	currentFontSize = fontSize;
 
 	var nrOfFonts = 8;
 
@@ -1121,57 +1150,14 @@ class CharBuffer extends Bitmap {
 	    unicodeDict.push(new Dictionary(false));
 	}
 
-	var format = new TextFormat();
-	format.size = 13;
-	format.font = "Courier";
-	format.italic = true;
-	format.underline = true;
-
-	var t = new TextField();
-	t.defaultTextFormat = format;
-	t.backgroundColor = 0;
-	t.textColor = 0xFFFFFF;
-	t.antiAliasType = flash.text.AntiAliasType.ADVANCED;
-	t.text = "W";
-
-	updateFontBoundries(t);
-
 	fontCopyRect = new Rectangle(0, 0, fontWidth, fontHeight);
-
-	var numChars = 256;
-
-	fontBitmap = new BitmapData((numChars-32) * fontWidth,
-		nrOfFonts * fontHeight,
-		false,
-		0);
-
-	var i = -1;
-	while(++i < nrOfFonts) {
-
-	    format.italic = (i & 1);
-	    format.underline = (i & 2);
-	    format.bold = (i & 4) != 0;
-	    t.defaultTextFormat = format;
-
-	    var j = 32-1;
-	    var matrix = new Matrix();
-	    while(++j < numChars) {
-		t.text = String.fromCharCode(j);
-		matrix.ty = -2 + fontHeight*i;
-		matrix.tx = (j-32) * fontWidth - 2;
-		fontBitmap.draw(t, matrix);
-	    }
-	}
-	if(debug) {
-	    // flash.Lib.current.addChild(new Bitmap(fontBitmap));
-	}
     }
 
     private function addFontToDictionary(b : Int, typeOfFont : Int) : BitmapData
     {
 	var format = new TextFormat();
-	format.size = 13;
-	format.font = "Courier New";
+	format.size = currentFontSize;
+	format.font = currentFontName;
 	format.italic = (typeOfFont & 1) != 0;
 	format.underline = (typeOfFont & 2) != 0;
 	format.bold = (typeOfFont & 4) != 0;
@@ -1357,25 +1343,14 @@ class CharBuffer extends Bitmap {
 	}
 
 	var bitmap : BitmapData;
-	if(b > 255) {
-	    // unicode
-	    bitmap = unicodeDict[fStyle][b];
-	    if(bitmap == null) {
-		// trace("Adding new char to the dictionary");
-		bitmap = addFontToDictionary(b, fStyle);
-	    }
-	    fontCopyRect.x = 0;
-	    fontCopyRect.y = 0;
-	} else {
-	    if(b <= 32) b = 0;
-	    else if(b >= 128 && b <= 160) b = 0;
-	    else b -= 32;
-
-	    fontCopyRect.x = b * fontWidth;
-	    fontCopyRect.y = fStyle * fontHeight;
-
-	    bitmap = fontBitmap;
+	if(b <= 32) b = 32;
+	else if(b >= 128 && b <= 160) b = 32;
+	bitmap = unicodeDict[fStyle][b];
+	if(bitmap == null) {
+	    bitmap = addFontToDictionary(b, fStyle);
 	}
+	fontCopyRect.x = 0;
+	fontCopyRect.y = 0;
 
 	var position = new Point(x * fontWidth, y * fontHeight);
 

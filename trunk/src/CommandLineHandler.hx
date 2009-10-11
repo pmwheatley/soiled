@@ -273,14 +273,16 @@ class CommandLineHandler
 	return StringTools.trim(inputString.substr(last));
     }
 
-    private function handleLocalCommands(cmd : String, first : Int, last : Int)
+    private function handleLocalCommands(cmd : String, last : Int)
     {
 	if(cmd == "/help" || cmd == "/?" ) {
 	    handleCmdHelp(last);
 	} else if(cmd == "/addinput") {
 	    return handleCmdAddInput(last);
 	} else if(cmd == "/alias") {
-	    handleCmdAlias(first, last);
+	    handleCmdAlias(last);
+	} else if(cmd == "/font") {
+	    handleCmdFont(last);
 	} else if(cmd == "/save") {
 	    handleCmdSave();
 	} else if(cmd == "/set") {
@@ -310,6 +312,7 @@ class CommandLineHandler
 		    "/alias - lists defined aliases.\n" +
 		    "/alias <name> - displays the <name> alias' <value>.\n" +
 		    "/alias <name> <value> - binds <name> as an alias to <value>.\n" +
+		    "/font [<size> <font name>] - list fonts or change it.\n" +
 		    "/help <topic> - read about <topic>.\n" +
 		    "/help topics - a list of available topics.\n" +
 		    "/set - list defined variables.\n" +
@@ -417,7 +420,7 @@ class CommandLineHandler
 	return true;
     }
 
-    private function handleCmdAlias(first : Int, last : Int)
+    private function handleCmdAlias(last : Int)
     {
 	var cmd = StringTools.trim(inputString.substr(last));
 	if(cmd.length == 0) {
@@ -425,7 +428,7 @@ class CommandLineHandler
 		appendText("\n/alias " + alias + " " + config.getAliases().get(alias));
 	    }
 	} else {
-	    first = cmd.indexOf(" ");
+	    var first = cmd.indexOf(" ");
 	    if(first == -1) {
 		if(config.getAliases().exists(cmd)) {
 		    appendText("\n/alias " + cmd + " " + config.getAliases().get(cmd));
@@ -435,6 +438,46 @@ class CommandLineHandler
 		cmd = cmd.substr(0, first);
 		config.getAliases().set(cmd, inputString);
 		config.saveAliases();
+	    }
+	}
+    }
+
+    private function StringComparer(x : String, y : String)
+    {
+	if(x < y) return -1;
+	if(x > y) return 1;
+	return 0;
+    }
+
+    private function handleCmdFont(last : Int)
+    {
+	var cmd = StringTools.trim(inputString.substr(last));
+	if(cmd.length == 0) {
+	    var names = new Array<String>();
+	    for(font in flash.text.Font.enumerateFonts(true)) {
+		if(font.fontStyle == flash.text.FontStyle.REGULAR)
+		    names.push(font.fontName);
+	    }
+	    names.sort(StringComparer);
+	    var tmp = new StringBuf();
+	    tmp.add("\nAvailable fonts are:");
+	    for(name in names) {
+		tmp.add(" \"" + name + "\"");
+	    }
+	    appendText(tmp.toString());
+	} else {
+	    var first = cmd.indexOf(" ");
+	    if(first == -1) {
+		appendText("\n%Usage: /font <size> <fontname>");
+	    } else {
+		var sizeStr = StringTools.ltrim(cmd.substr(0, first));
+		cmd = StringTools.ltrim(cmd.substr(first));
+		var size = Std.parseInt(sizeStr);
+		if(size == null) {
+		    appendText("\n%Fontsize was not a number.");
+		} else {
+		    cb.changeFont(cmd, size);
+		}
 	    }
 	}
     }
@@ -604,7 +647,7 @@ class CommandLineHandler
 			}
 			return false;
 		    } else {
-			if(handleLocalCommands(cmd, first, last)) {
+			if(handleLocalCommands(cmd, last)) {
 			    inputString = "";
 			    inputPosition = 0;
 			}
