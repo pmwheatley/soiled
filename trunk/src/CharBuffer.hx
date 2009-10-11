@@ -146,7 +146,7 @@ class CharBuffer extends Bitmap {
     /* When turned on, various debug code could be run. */
     private var debug : Bool;
 
-    public function new()
+    public function new(config : Config)
     {
 	try {
 	    super();
@@ -181,7 +181,15 @@ class CharBuffer extends Bitmap {
 	    charBuffer[columns * rows-1] = 0;
 	    attrBuffer[columns * rows-1] = null;
 
-	    initFont("Courier New", 15);
+	    var fontSizeStr = config.getVar("FONT_SIZE");
+	    var fontName = config.getVar("FONT_NAME");
+	    if(fontName == null) fontName = "Courier New";
+	    if(fontSizeStr == null) fontSizeStr = "15";
+
+	    var fontSize = Std.parseInt(fontSizeStr);
+	    if(fontSize < 8) fontSize = 8;
+
+	    initFont(fontName, fontSize);
 
 	    reset();
 	} catch ( ex : Dynamic ) {
@@ -1301,7 +1309,7 @@ class CharBuffer extends Bitmap {
 	}
     }
 
-    private inline function toggleInvert()
+    private inline function toggleInvert(currentAttributes : CharAttributes)
     {
 	if(currentAttributes.isInverted())
 	    currentAttributes.resetInverted();
@@ -1313,6 +1321,7 @@ class CharBuffer extends Bitmap {
 	                               currentAttributes : CharAttributes,
 				       x : Int, y : Int)
     { 
+	currentAttributes = currentAttributes.clone();
 	var fStyle = 0;
 	if(b != -1) {
 	    if(currentAttributes.isItalic()) fStyle |= 1;
@@ -1326,18 +1335,18 @@ class CharBuffer extends Bitmap {
 		    if(x >= startOfSelectionColumn) {
 			if(y == endOfSelectionRow) {
 			    if(x <= endOfSelectionColumn) {
-				toggleInvert();
+				toggleInvert(currentAttributes);
 			    }
 			} else {
-			    toggleInvert();
+			    toggleInvert(currentAttributes);
 			}
 		    }
 		} else if(y == endOfSelectionRow) {
 		    if(x <= endOfSelectionColumn) {
-			toggleInvert();
+			toggleInvert(currentAttributes);
 		    }
 		} else {
-		    toggleInvert();
+		    toggleInvert(currentAttributes);
 		}
 	    }
 	}

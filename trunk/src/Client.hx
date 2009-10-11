@@ -227,8 +227,9 @@ class Client {
 		flash.system.Security.loadPolicyFile(params.policyFile);
 	    }
 
-            charBuffer = new CharBuffer();
-            vt100 = new VT100(sendByte, charBuffer);
+            var config = new Config();
+            charBuffer = new CharBuffer(config);
+            vt100 = new VT100(sendByte, charBuffer, config);
 
 	    textField = new TextField();
 	    textField.type = TextFieldType.INPUT;

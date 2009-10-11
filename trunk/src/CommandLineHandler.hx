@@ -383,6 +383,8 @@ class CommandLineHandler
 			    "Variables\n" +
 			    "---------\n" +
 			    "Variables hold a value. Currently they are used for changing the way the client works. The known variables are:\n" +
+			    "FONT_NAME: The name of the default font.\n" +
+			    "FONT_SIZE: The size of the default font.\n" +
 			    "LANG: What language the OS is set to. Only set once.\n" +
 			    "LOCAL_EDIT: When set to \"on\", some of the keys are used for local line editing instead of being sent to the server.\n" +
 			    "OS: What platform the client is running on. Only set once.\n" +

@@ -102,7 +102,9 @@ class VT100 implements ITelnetEventListener,
 
     private var tabStops : Array<Bool>;
 
-    public function new(sendByte : Int -> Void, charBuffer : CharBuffer)
+    public function new(sendByte : Int -> Void,
+	                charBuffer : CharBuffer, 
+			config : Config)
     {
 	try {
 	    vtParser = new VtParser(this);
@@ -111,7 +113,7 @@ class VT100 implements ITelnetEventListener,
 	    oldPromptAttribute = new Array<CharAttributes>();
 	    newPromptAttribute = new Array<CharAttributes>();
 
-	    config = new Config();
+	    this.config = config;
 
 	    this.clh = new CommandLineHandler(sendByte, drawPrompt, cb, config);
 

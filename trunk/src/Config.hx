@@ -152,6 +152,8 @@ class Config
 	var lang = flash.system.Capabilities.language;
 	vars.set("OS", os);
 	vars.set("LANG", lang);
+	vars.set("FONT_SIZE", "15");
+	vars.set("FONT_NAME", "Courier New");
     }
 
     private function loadData()
