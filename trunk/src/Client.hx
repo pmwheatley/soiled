@@ -255,7 +255,7 @@ class Client {
             onResize(null);
 
 
-            charBuffer.appendText("\n\n Soiled, version 0.44 (" + CompileTime.time + ")\n" +
+            charBuffer.appendText("\n\n Soiled, version pre-0.45 (" + CompileTime.time + ")\n" +
 		    "  (C)2007-2009 Sebastian Andersson.");
 
 	    var contextMenu = new ContextMenu();
