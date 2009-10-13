@@ -124,6 +124,14 @@ class Client {
 	charBuffer.appendText("% Connection to server was closed by foreign host.\n");
     }
 
+    /* The CharBuffer has a new font */
+    private static function onNewFont()
+    {
+	if(telnet != null) {
+	    telnet.sendNawsInfo();
+	}
+    }
+
     /* The user has pressed the mouse button */
     static function onMouseDown(o : Dynamic)
     {
@@ -228,7 +236,7 @@ class Client {
 	    }
 
             var config = new Config();
-            charBuffer = new CharBuffer(config);
+            charBuffer = new CharBuffer(onNewFont, config);
             vt100 = new VT100(sendByte, charBuffer, config);
 
 	    textField = new TextField();

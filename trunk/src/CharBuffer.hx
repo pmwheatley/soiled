@@ -146,7 +146,10 @@ class CharBuffer extends Bitmap {
     /* When turned on, various debug code could be run. */
     private var debug : Bool;
 
-    public function new(config : Config)
+    /** Callback to be called when the font is changed **/
+    private var onNewFont : Void -> Void;
+
+    public function new(onNewFont : Void -> Void, config : Config)
     {
 	try {
 	    super();
@@ -182,6 +185,8 @@ class CharBuffer extends Bitmap {
 	    attrBuffer[columns * rows-1] = null;
 
 	    initFont(config.getFontName(), config.getFontSize());
+
+	    this.onNewFont = onNewFont;
 
 	    reset();
 	} catch ( ex : Dynamic ) {
@@ -989,6 +994,7 @@ class CharBuffer extends Bitmap {
     {
 	initFont(fontName, size);
 	resize(true);
+	if(onNewFont != null) onNewFont();
     }
 
      /***********************************/
