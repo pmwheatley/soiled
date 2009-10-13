@@ -1,0 +1,15 @@
+-swf soiled.swf
+-swf-version 9
+-swf-header 800:400:25:040303
+-main Client
+-xml soiled.swf.xml
+ITelnetEventListener
+IVtParserListener
+Config
+CommandLineHandler
+VtParser
+VT100
+Telnet
+CompileTime
+CharBuffer
+CharAttributes

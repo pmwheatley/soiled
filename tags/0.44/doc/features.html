@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/strict.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <style type="text/css">
+        html {background: #000000; color: #BBAA44 }
+    </style>
+    <title>Soiled's features</title>
+</head>
+<body>
+
+<h2>Soiled's current features are:</h2>
+
+<ul>
+    <li>
+  Uses the TELNET protocol.  Understands ECHO, ENDOFRECORD, SUPRESS GO AHEAD, TERMINAL TYPE and NAWS TELNET options, answers DONT/WONT on other options.
+    </li>
+    <li>
+  Understands LF and CR like they are supposed to work.
+    </li>
+    <li>
+    Has local line editing using the emacs key bindings
+    (CTRL-A, B, D, E, F, K, L, U and W).
+    </li>
+    <li>
+  Sends cursor keys, F1-F12, PGUP, PGDN, HOME and END to the server.
+  Cursor keys can be sent in both application and "normal" mode.
+    </li>
+    <li>
+    Supports the following VT100/VT102 control functions:
+    SM, RM, DECSET, DECRST, DECSTBM, CUU, CUD, CUF, CUB, CUP, HVP, IND, RI, NEL,
+    DECSC, DECRC, DECPAM, DECKPNM, SCS, SGR, HTS, TBC, EL, ED, DCH, IL, DL, DA,
+    DECID, RI and RIS. DECOM, IRM, LNM.
+    </li>
+    <li>
+  Understands xterm's 256 colour sequences.
+    </li>
+    <li>
+	char-by-char mode, sort off... When local echo is turned off, it operates in char-by-char mode.
+    </li>
+    <li>
+  Works as a client to most MUD servers and one can play nethack with DECGraphics via it. :-)
+    </li>
+    <li>
+  Basic scrollback buffer. Use shift + PGUP/PGDN to look at previous output.
+    </li>
+    <li>
+        Copy & Paste.
+    </li>
+    <li>
+	Aliases/macros.  There is basic support for aliases & macros, but nothing fancy yet.
+	Internal commands can be viewed with: /help
+    </li>
+</ul>
+
+<h2> Planned features (no order and may change)</h2>
+<ul>
+    <li>
+	ctrl-r/ctrl-s (search in input history).
+    </li>
+    <li>
+	Improved scrollbuffer (including copy)..
+    </li>
+    <li>
+	MXP? The protocol is badly specified with ambiguities, it badly makes
+	use of existing clients/servers existing features and is more complicated
+	than needed in my opinion. Its no wonder that so few clients support it.
+    </li>
+    <li>
+	Word wrapping? I consider that a server feature since it is impossible
+	for the client to format multi-column text, tables and ascii art
+	correctly. On the other hand there are many muds that can't do this...
+    </li>
+    <li>
+	triggers? There's something wrong with the gameplay if the player
+	should have to write triggers. Improve the gameplay instead (or make
+	the triggers a part of the server).
+    </li>
+</ul>
+</body>
+</html>
