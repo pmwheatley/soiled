@@ -3,6 +3,7 @@
 <cross-domain-policy> 
    <site-control permitted-cross-domain-policies="master-only"/>
    <allow-access-from domain="dum.acc.umu.se" to-ports="2001" />
-   <allow-access-from domain="localhost" to-ports="2003" />
+   <allow-access-from domain="localhost" to-ports="2001-2004,5445" />
+   <allow-access-from domain="*" to-ports="4099" />
    <allow-access-from domain="localhost" to-ports="23" />
 </cross-domain-policy>
