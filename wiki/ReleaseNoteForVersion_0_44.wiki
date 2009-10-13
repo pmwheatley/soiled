@@ -1,6 +1,24 @@
-#summary Release Note for version 0.43
+#summary Release Note for version 0.44
+#labels Featured
 
 = Introduction =
+
+Version 0.44 adds the ability to change the font and open received URLs
+in new windows.
+
+= Detailed changelist =
+
+  * Added a "font" command to change font.
+  * By setting FONT_SIZE and FONT_NAME variables, one can change the font used during startup.
+  * Soiled now supports DECOM, IRM and LNM.
+  * Improved the example installation HTML.
+  * The installation documentation has been improved.
+  * A C-server, MCTS - the MUD Client Test Server, has been added to make it easier to test TELNET/MUD-clients.
+  * Some code has been added to detect when the client has no network access due to the security model of the Adobe flash player.
+  * A make target has been added to generate API-documentation from the source.
+  * The code has been rewritten to be easier to understand.
+
+= The changes in version 0.43  =
 
 Version 0.43 only contains a few, minor changes. It is now stable enough to play and view games at http://nethack.alt.org/
 

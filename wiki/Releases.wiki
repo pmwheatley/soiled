@@ -7,4 +7,5 @@ The latest releases should have a release note page linked from this page.
 
 = Details =
 
+* ReleaseNoteForVersion_0_44 - 2009-10-13
 * ReleaseNoteForVersion_0_43
