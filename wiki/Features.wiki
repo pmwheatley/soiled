@@ -21,3 +21,4 @@ Some of the features described here might only be available in the trunk version
   * Aliases/macros. There is basic support for aliases & macros, but nothing fancy yet.
   * Internal commands can be viewed with: /help
   * Command/ctrl clicking an URL will open it in the browser.
+  * TAB expansion of previously entered commands/words.

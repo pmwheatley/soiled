@@ -15,10 +15,8 @@
   * auto logon - run a special macro/alias when the client has been connected.
   * Use a split screen when scrolling back, so one always sees the bottom of the screen. That is good for muds.
   * CTRL-R/S to search the command line history. Should work like readline.
-  * TAB expansion of previous commands (if first on the line) and words (when later on the line).
   * Word wrapping in the client (must be setable). Lesser muds need this...
   * Expand variables in aliases/macros.
   * Set variables from regexps matching received text (limited triggers).
-  * Store last line in a variable.
   * Store last command in a variable.
   * Store last argument in a variable.
