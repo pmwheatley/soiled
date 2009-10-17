@@ -19,6 +19,9 @@
 
 import flash.ui.Keyboard;
 import flash.events.KeyboardEvent;
+import wordCache.WordCacheBase;
+import wordCache.FrequencyWordCache;
+import wordCache.LexigraphicWordCache;
 
 // TODO: Implement Application Keypad.
 
@@ -49,6 +52,16 @@ class CommandLineHandler
     var inputCursPositionX : Int;
     var inputCursPositionY : Int;
 
+    /* A list of entered words */
+    private var wordCache : WordCacheBase;
+    /* A list of entered commands */
+    private var cmdCache : WordCacheBase;
+
+    /* The position of the cursor when tab was last pressed */
+    private var tabPosition : Int;
+    /* The number of times tab has been pressed in a row */
+    private var tabNumber : Int;
+
     // Last input is last in the history...
     private var history : Array<String>;
     // Points out which history item we are changing.
@@ -71,6 +84,9 @@ class CommandLineHandler
 	    this.cb = charBuffer;
 	    this.config = config;
 
+	    // TODO: Make the type configurable.
+	    wordCache = new FrequencyWordCache();
+	    cmdCache = new LexigraphicWordCache();
 	    currentHistory = -1;
 	    history = new Array<String>();
 
@@ -226,6 +242,43 @@ class CommandLineHandler
 		inputString = s;
 	    }
 	}
+    }
+
+    /** Handles tab expansion **/
+    private function handleTab()
+    {
+	var needsRedraw = false;
+	if(inputPosition > 0) {
+	    if(tabNumber > 0) {
+		// Remove old tab expansion.
+		if(tabPosition != inputPosition) {
+		    removeInputStringFrom(tabPosition);
+		    var s = inputString.substr(0, tabPosition) +
+			    inputString.substr(inputPosition);
+		    inputString = s;
+		    inputPosition = tabPosition;
+		    needsRedraw = true;
+
+		}
+	    }
+	    tabPosition = inputPosition;
+	    var i = inputPosition;
+	    while(i > 0 && inputString.charAt(i-1) != " ") i--;
+	    var prefix = inputString.substr(i, inputPosition-i);
+	    var nw;
+	    if(i == 0) nw = cmdCache.get(prefix, tabNumber++);
+	    else nw = wordCache.get(prefix, tabNumber++);
+	    if(nw != null) {
+		if(prefix != nw) {
+		    nw = nw.substr(prefix.length);
+		    if(inputString.length == inputPosition) nw += " ";
+		    insertToInputString(nw);
+		    needsRedraw = true;
+		}
+	    } else tabNumber = 0;
+	}
+	if(needsRedraw) drawInputStringFrom(tabPosition);
+	else cb.bell();
     }
     
     private function sendFKey(num : Int)
@@ -586,6 +639,17 @@ class CommandLineHandler
     {
 	config.setLastCommand(inputString);
 	if(inputString.length > 0) {
+	    var minWordLength = 1; // TODO: Configurable min length.
+	    var words = inputString.split(" ");
+	    if(words.length > 0 &&
+	       words[0].length > minWordLength) {
+		cmdCache.add(words[0]);
+	    }
+	    for(word in words) {
+		if(word.length > minWordLength) {
+		    wordCache.add(word);
+		}
+	    }
 	    if(currentHistory != -1) {
 		history[history.length-1] = new String(inputString);
 		currentHistory = -1;
@@ -780,6 +844,19 @@ class CommandLineHandler
 	}
     }
 
+    private function insertToInputString(str)
+    {
+	if(inputPosition == inputString.length) {
+	    inputString += str;
+	} else {
+	    var s = inputString.substr(0, inputPosition) +
+		str +
+		inputString.substr(inputPosition, inputString.length - inputPosition);
+	    inputString = s;
+	}
+	inputPosition += str.length;
+    }
+
     private function handleNormalKey(c : Int)
     {
 	if(c == 0) return;
@@ -788,15 +865,7 @@ class CommandLineHandler
 	    return;
 	}
 
-	if(inputPosition == inputString.length) {
-	    inputString += String.fromCharCode(c);
-	} else {
-	    var s = inputString.substr(0, inputPosition) +
-		String.fromCharCode(c) +
-		inputString.substr(inputPosition, inputString.length - inputPosition);
-	    inputString = s;
-	}
-	inputPosition++;
+	insertToInputString(String.fromCharCode(c));
 	drawInputStringFrom(inputPosition-1);
     }
 
@@ -878,6 +947,9 @@ class CommandLineHandler
 
 	    var isTextInput = e.type == "textInput";
 	    var c = e.charCode;
+
+	    var oldTabNumber = tabNumber;
+	    tabNumber = 0;
 
 	    switch(e.keyCode) {
 		case Keyboard.PAGE_UP:
@@ -962,6 +1034,10 @@ class CommandLineHandler
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
 		    if(isCharByCharMode()) sendByte(9); // TAB.
+		    else {
+			tabNumber = oldTabNumber;
+			handleTab();
+		    }
                 case Keyboard.ENTER:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();

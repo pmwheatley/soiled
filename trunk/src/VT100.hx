@@ -18,8 +18,6 @@
 */
 
 import flash.ui.Keyboard;
-import flash.media.Sound;
-import flash.net.URLRequest;
 import flash.external.ExternalInterface;
 import flash.events.KeyboardEvent;
 
@@ -88,9 +86,6 @@ class VT100 implements ITelnetEventListener,
 
     private var gotPreviousInput : Bool;
 
-    private var beepSound : Sound;
-
-
     private var vtParser : VtParser;
 
     private var oscString : String;
@@ -119,8 +114,6 @@ class VT100 implements ITelnetEventListener,
 
 	    promptTimer = new flash.utils.Timer(250, 1);
 	    promptTimer.addEventListener("timer", promptTimeout);
-
-	    beepSound = new Sound(new URLRequest("beep.mp3")); // MUST BE 44.100kHz!
 
 	    this.sendByte = sendByte;
 
@@ -1078,7 +1071,7 @@ class VT100 implements ITelnetEventListener,
 	    case 0: // NUL
 		// Ignore.
 	    case 7: // Bell.
-		beepSound.play();
+		cb.bell();
 	    case 8: // BACKSPACE
 		var x = cb.getCursX();
 		if(x == 0) return;

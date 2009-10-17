@@ -24,6 +24,8 @@ import flash.geom.ColorTransform;
 import flash.geom.Matrix;
 import flash.geom.Point;
 import flash.geom.Rectangle;
+import flash.media.Sound;
+import flash.net.URLRequest;
 import flash.text.TextField;
 import flash.text.TextFormat;
 import flash.utils.Dictionary;
@@ -38,6 +40,9 @@ import flash.utils.Dictionary;
 class CharBuffer extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
+
+    /* The sound used for sound alerts */
+    private var beepSound : Sound;
 
     /* The size of the font in whole pixels: */
     private var fontHeight : Int;
@@ -160,6 +165,8 @@ class CharBuffer extends Bitmap {
 		CharAttributes.setDebug();
 	    }
 
+	    beepSound = new Sound(new URLRequest("beep.mp3")); // MUST BE 44.100kHz!
+
 	    defaultAttributes = new CharAttributes();
 	    defaultAttributes.setFgColour(2);
 	    currentAttributes = defaultAttributes.clone();
@@ -192,6 +199,12 @@ class CharBuffer extends Bitmap {
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
+    }
+
+    /** Alert the user **/
+    public function bell()
+    {
+	beepSound.play();
     }
 
     /* Write text to the screen where the cursor is and
