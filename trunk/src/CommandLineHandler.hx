@@ -584,6 +584,7 @@ class CommandLineHandler
 
     private function addToCommandHistory(inputString : String)
     {
+	config.setLastCommand(inputString);
 	if(inputString.length > 0) {
 	    if(currentHistory != -1) {
 		history[history.length-1] = new String(inputString);

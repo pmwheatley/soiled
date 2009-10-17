@@ -75,6 +75,14 @@ class Config
 	vars.set(name, value);
     }
 
+    public function setLastCommand(cmd : String)
+    {
+	vars.set("LAST_INPUT", cmd);
+	if("" != cmd) {
+	    vars.set("LAST_CMD", cmd);
+	}
+    }
+
     /** Returns the configurable font name to use. **/
     public function getFontName() : String
     {
