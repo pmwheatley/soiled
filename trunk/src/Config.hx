@@ -30,21 +30,36 @@ class Config
     private var aliases : Hash<String>;
     private var vars : Hash<String>;
 
+    private var minWordLength : Int;
+
+    /**
+      The constructor loads the config values from storage, or
+      creates new config values if this is the first visit.
+     **/
     public function new()
     {
 	loadData();
     }
 
+    /**
+      Gets the internal Hash of all aliases
+     **/
     public function getAliases()
     {
 	return aliases;
     }
 
+    /**
+      Gets the internal Hash of all variables
+     **/
     public function getVars()
     {
 	return vars;
     }
 
+    /**
+      Saves the aliases and variables to storage/a flash cookie.
+     **/
     public function save()
     {
 	saveAliases();
@@ -52,29 +67,65 @@ class Config
 	sharedData.flush();
     }
 
+    /**
+      Saves the aliases to storage/a flash cookie.
+     **/
     public function saveAliases()
     {
 	sharedData.data.aliases = hashToString(aliases);
 	sharedData.flush();
     }
 
+    /**
+      Saves the variables to storage/a flash cookie.
+     **/
     public function saveVars()
     {
 	sharedData.data.vars = hashToString(vars);
 	sharedData.flush();
     }
 
-
+    /** Gets the value of the given variable **/
     public function getVar(name : String) : Null<String>
     {
 	return vars.get(name);
     }
 
+    /**
+      Sets the value of the given variable
+     **/
     public function setVar(name : String, value : String) : Void
     {
 	vars.set(name, value);
+	if(name == "MIN_WORD_LEN") {
+	    initVarCache();
+	}
     }
 
+    /** Gets the value of the MIN_WORD_LEN variable,
+        or a suitable default value.
+     **/
+    public function getMinWordLength() : Int
+    {
+	return minWordLength;
+    }
+
+    /** Gets the value of the WORD_CACHE_TYPE variable.
+        It always returns FREQUENCY or LEXIGRAPHIC.
+     **/
+    public function getWordCacheType() : String
+    {
+	var v = getVar("WORD_CACHE_TYPE");
+	if(v != null && v.length > 0) {
+	    var s = v.toUpperCase().charAt(0);
+	    if(s == "F") return "FREQUENCY";
+	}
+	return "LEXIGRAPHIC";
+    }
+
+    /**
+      Sets the LAST_INPUT and LAST_CMD variables.
+     **/
     public function setLastCommand(cmd : String)
     {
 	vars.set("LAST_INPUT", cmd);
@@ -83,7 +134,9 @@ class Config
 	}
     }
 
-    /** Returns the configurable font name to use. **/
+    /**
+      Returns the configurable font name to use.
+     **/
     public function getFontName() : String
     {
 	var fontName = getVar("FONT_NAME");
@@ -91,7 +144,9 @@ class Config
 	return fontName;
     }
 
-    /** Returns the configurable font size to use. **/
+    /**
+      Returns the configurable font size to use.
+     **/
     public function getFontSize() : Int
     {
 	var fontSizeStr = getVar("FONT_SIZE");
@@ -102,6 +157,10 @@ class Config
 	return fontSize;
     }
 
+    /**
+      Serializes the Hash<String> object to a string
+      that can be stored in a flash cookie
+     **/
     private function hashToString(hash : Hash<String>) : String
     {
 	var tmp = new StringBuf();
@@ -116,6 +175,10 @@ class Config
 	return tmp.toString();
     }
 
+    /**
+      Deserializes a string into a Hash<String> value that
+      was retrieved from a flash cookie.
+     **/
     private function stringToHash(s : String, hash : Hash<String>)
     {
 	var arr = s.split(":");
@@ -129,6 +192,10 @@ class Config
 	}
     }
 
+    /**
+      Unescapes a previously escape():ed string when
+      it was retrieved from storage.
+     **/
     private function unescape(s : String)
     {
 	var ret = new StringBuf();
@@ -147,6 +214,9 @@ class Config
 	return ret.toString();
     }
 
+    /**
+      Excapes a string so it can be saved in a cookie.
+     **/
     private function escape(s : String)
     {
 	var ret = new StringBuf();
@@ -166,11 +236,17 @@ class Config
 	return ret.toString();
     }
 
+    /**
+      Sets up the initial aliases that a new user should get.
+     **/
     private function initAliases()
     {
 	aliases.set("KEY_F1", "/help");
     }
 
+    /**
+      Sets up the initial variables that a new user should get.
+     **/
     private function initVars()
     {
 	var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
@@ -183,8 +259,29 @@ class Config
 	vars.set("LANG", lang);
 	vars.set("FONT_SIZE", "15");
 	vars.set("FONT_NAME", "Courier New");
+	vars.set("MIN_WORD_LEN", "2");
     }
 
+    /**
+      Sets up caches copies of variables, to make it slightly faster
+      to read their values.
+     **/
+    private function initVarCache()
+    {
+	var val = getVar("MIN_WORD_LEN");
+	minWordLength = 2;
+	if(val != null) {
+	    var v = Std.parseInt(val);
+	    if(v != null && v > 2) {
+		minWordLength = v;
+	    }
+	}
+	// trace("MIN_WORD_LEN: " + minWordLength);
+    }
+
+    /**
+      Loads the config data from a flash cookie.
+     **/
     private function loadData()
     {
 	aliases = new Hash();
@@ -202,12 +299,12 @@ class Config
 	    initVars();
 	    saveAliases();
 	    saveVars();
-
 	} else {
 	    sharedData.data.howmanytimes += 1;
 
 	    stringToHash(sharedData.data.aliases, aliases);
 	    stringToHash(sharedData.data.vars, vars);
 	}
+	initVarCache();
     }
 }

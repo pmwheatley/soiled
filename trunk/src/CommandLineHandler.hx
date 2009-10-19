@@ -85,8 +85,13 @@ class CommandLineHandler
 	    this.config = config;
 
 	    // TODO: Make the type configurable.
-	    wordCache = new FrequencyWordCache();
-	    cmdCache = new LexigraphicWordCache();
+	    if(config.getWordCacheType() == "FREQUENCY") {
+		wordCache = new FrequencyWordCache();
+		cmdCache = new FrequencyWordCache();
+	    } else {
+		wordCache = new LexigraphicWordCache();
+		cmdCache = new LexigraphicWordCache();
+	    }
 	    currentHistory = -1;
 	    history = new Array<String>();
 
@@ -438,9 +443,12 @@ class CommandLineHandler
 			    "Variables hold a value. Currently they are used for changing the way the client works. The known variables are:\n" +
 			    "FONT_NAME: The name of the default font.\n" +
 			    "FONT_SIZE: The size of the default font.\n" +
+			    "MIN_WORD_LEN: The minimum length of a word to be added to the cache\n" +
 			    "LANG: What language the OS is set to. Only set once.\n" +
 			    "LOCAL_EDIT: When set to \"on\", some of the keys are used for local line editing instead of being sent to the server.\n" +
 			    "OS: What platform the client is running on. Only set once.\n" +
+			    "WORD_CACHE_TYPE: FREQUENCY or LEXIGRAPHIC - for TAB-expansion.\n" +
+			    "                 Requires restart to take effect.\n" +
 			    "");
 		default:
 		appendText(
@@ -639,7 +647,7 @@ class CommandLineHandler
     {
 	config.setLastCommand(inputString);
 	if(inputString.length > 0) {
-	    var minWordLength = 1; // TODO: Configurable min length.
+	    var minWordLength = config.getMinWordLength()-1;
 	    var words = inputString.split(" ");
 	    if(words.length > 0 &&
 	       words[0].length > minWordLength) {
