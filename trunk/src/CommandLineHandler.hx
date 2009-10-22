@@ -84,7 +84,6 @@ class CommandLineHandler
 	    this.cb = charBuffer;
 	    this.config = config;
 
-	    // TODO: Make the type configurable.
 	    if(config.getWordCacheType() == "FREQUENCY") {
 		wordCache = new FrequencyWordCache();
 		cmdCache = new FrequencyWordCache();
@@ -441,6 +440,7 @@ class CommandLineHandler
 			    "Variables\n" +
 			    "---------\n" +
 			    "Variables hold a value. Currently they are used for changing the way the client works. The known variables are:\n" +
+			    "AUTO_LOGIN: A text that will be sent during login. Write \\r\\n to separate lines.\n" +
 			    "FONT_NAME: The name of the default font.\n" +
 			    "FONT_SIZE: The size of the default font.\n" +
 			    "MIN_WORD_LEN: The minimum length of a word to be added to the cache\n" +

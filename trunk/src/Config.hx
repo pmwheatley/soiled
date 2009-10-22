@@ -57,6 +57,18 @@ class Config
 	return vars;
     }
 
+    public function getAutologin() : String
+    {
+	var s = getVar("AUTO_LOGIN");
+	if(s != null) {
+	    s = StringTools.replace(s, "\\r", "\r");
+	    s = StringTools.replace(s, "\\0", "\000");
+	    s = StringTools.replace(s, "\\n", "\n");
+	    s = StringTools.replace(s, "\\\\", "\\");
+	}
+	return s;
+    }
+
     /**
       Saves the aliases and variables to storage/a flash cookie.
      **/

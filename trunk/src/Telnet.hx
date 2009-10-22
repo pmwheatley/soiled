@@ -101,9 +101,16 @@ class Telnet extends flash.events.EventDispatcher {
     private var optionsUs : Array<EnuTelnetOptionState>;
     private var optionsHim : Array<EnuTelnetOptionState>;
 
-    public function new(eventListener : ITelnetEventListener, server : String, port : Int)
+    private var config : Config;
+
+    public function new(eventListener : ITelnetEventListener,
+	                server : String,
+			port : Int,
+			config : Config)
     {
 	super();
+
+	this.config = config;
 
 	this.ttIndex = -1;
 
@@ -621,6 +628,8 @@ class Telnet extends flash.events.EventDispatcher {
     private function gotConnect(o : Dynamic)
     {
 	eventListener.appendText("Connected!\n\n");
+	var str = config.getAutologin();
+	if(str != null) writeString(str);
     }
 
     private function gotIoError(o : Dynamic)

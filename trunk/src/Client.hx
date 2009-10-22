@@ -34,6 +34,7 @@ import flash.system.Security;
 */
 class Client {
 
+    private static var config : Config;
     private static var charBuffer : CharBuffer;
     private static var vt100 : VT100;
     private static var telnet : Telnet;
@@ -202,7 +203,10 @@ class Client {
 	    vt100.reset();
 	    charBuffer.appendText("\n\nConnecting to " +
 		    params.s + ":" + params.p + "... ");
-	    telnet = new Telnet(vt100, params.s, Std.parseInt(params.p));
+	    telnet = new Telnet(vt100,
+		                params.s,
+				Std.parseInt(params.p),
+				config);
 	    telnet.addEventListener("close", onClose);
 	}
     }
@@ -235,7 +239,7 @@ class Client {
 		flash.system.Security.loadPolicyFile(params.policyFile);
 	    }
 
-            var config = new Config();
+            config = new Config();
             charBuffer = new CharBuffer(onNewFont, config);
             vt100 = new VT100(sendByte, charBuffer, config);
 
