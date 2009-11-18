@@ -440,12 +440,12 @@ class CommandLineHandler
 			    "\n" +
 			    "Variables\n" +
 			    "---------\n" +
-			    "Variables hold a value. Currently they are used for changing the way the client works. The known variables are:\n" +
+			    "A variable holds a value. Currently they are used for changing the way the client works. The known variables are:\n" +
 			    "AUTO_LOGIN: A text that will be sent during login. Write \\r\\n to separate lines.\n" +
 			    "BG_COL: The default background colour.\n" +
-			    "                 Requires restart to take effect.\n" +
+			    "CURSOR_TYPE: The type of cursor used, valid values are:\n" +
+			    "        vertical, underline and block.\n" +
 			    "FG_COL: The default foreground colour.\n" +
-			    "                 Requires restart to take effect.\n" +
 			    "FONT_NAME: The name of the default font.\n" +
 			    "FONT_SIZE: The size of the default font.\n" +
 			    "MIN_WORD_LEN: The minimum length of a word to be added to the cache\n" +

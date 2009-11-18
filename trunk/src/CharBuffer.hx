@@ -41,6 +41,8 @@ class CharBuffer extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
 
+    private var config : Config;
+
     /* The sound used for sound alerts */
     private var beepSound : Sound;
 
@@ -118,6 +120,9 @@ class CharBuffer extends Bitmap {
     /* Is the cursor drawn on the bitmap? */
     private var cursorIsShown : Bool;
 
+    /* What kind of cursor was last drawn? */
+    private var oldCursorType : String;
+
     /* Should the cursor drawn on the bitmap? */
     private var cursorShouldBeVisible : Bool;
 
@@ -158,6 +163,8 @@ class CharBuffer extends Bitmap {
     {
 	try {
 	    super();
+
+	    this.config = config;
 
 	    var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
 	    if(params.debug != null) {
@@ -1096,30 +1103,49 @@ class CharBuffer extends Bitmap {
 
     private function drawCursor() {
 	if(!cursorIsShown) {
-	    var y = cursY + displayOffset;
-	    if(y >= rows) return;
-	    var position = new Point(cursX * fontWidth, y * fontHeight);
-	    var colorTransform = new ColorTransform(
-		    -1,
-		    -1,
-		    -1,
-		    1,
-		    255,
-		    255,
-		    255,
-		    0);
-	    this.bitmapData.colorTransform(
-		    new Rectangle(position.x, position.y,
-			          fontWidth, fontHeight),
-		    colorTransform);
+	    drawCursor_(false);
 	    cursorIsShown = true;
 	}
     }
 
+    private function drawCursor_(toBeCleared : Bool) {
+	var y = cursY + displayOffset;
+	if(y >= rows) return;
+	var position = new Point(cursX * fontWidth, y * fontHeight);
+	var colorTransform = new ColorTransform(
+		-1,
+		-1,
+		-1,
+		1,
+		255,
+		255,
+		255,
+		0);
+	var cursorType;
+	if(toBeCleared) {
+	    cursorType = oldCursorType;
+	} else {
+	    cursorType = this.config.getCursorType();
+	    oldCursorType = cursorType;
+	}
+	var rec;
+	switch(cursorType) {
+	    case "vertical":
+		rec = new Rectangle(position.x, position.y,
+			1, fontHeight);
+	    case "underline":
+		rec = new Rectangle(position.x, position.y+fontHeight-1,
+			fontWidth, 1);
+	    default:
+	    rec = new Rectangle(position.x, position.y,
+		    fontWidth, fontHeight);
+	}
+	this.bitmapData.colorTransform(rec, colorTransform);
+    }
+
     private function removeCursor_() {
 	if(cursorIsShown) {
-	    cursorIsShown = false;
-	    drawCursor();
+	    drawCursor_(true);
 	    cursorIsShown = false;
 	}
     }

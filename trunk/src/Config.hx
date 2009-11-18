@@ -32,6 +32,8 @@ class Config
 
     private var minWordLength : Int;
 
+    private var cursorType : String;
+
     private var defaultFgColour : Int;
     private var defaultBgColour : Int;
 
@@ -112,7 +114,10 @@ class Config
     public function setVar(name : String, value : String) : Void
     {
 	vars.set(name, value);
-	if(name == "MIN_WORD_LEN") {
+	if(name == "MIN_WORD_LEN" ||
+	   name == "FG_COL" ||
+	   name == "BG_COL" ||
+	   name == "CURSOR_TYPE") {
 	    initVarCache();
 	}
     }
@@ -136,6 +141,14 @@ class Config
 	    if(s == "F") return "FREQUENCY";
 	}
 	return "LEXIGRAPHIC";
+    }
+
+    /** Returns the value of the CURSOR_TYPE variable,
+        or a suitable default value.
+     **/
+    public function getCursorType() : String
+    {
+	return cursorType;
     }
 
     /** Gets the value of the FG_COL variable,
@@ -329,6 +342,13 @@ class Config
 	    if(v != null && v >= 0 && v <= 7) {
 		defaultBgColour = v;
 	    }
+	}
+
+	val = getVar("CURSOR_TYPE");
+	if(val == null) val = params.cursorType;
+	cursorType = "block";
+	if(val != null && val.length > 0) {
+	    cursorType = val;
 	}
     }
 
