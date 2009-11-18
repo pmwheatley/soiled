@@ -41,6 +41,7 @@ class CommandLineHandler
     private var drawPrompt : Void -> Void;
 
     private var charByChar : Bool;
+    private var cmdInputMode : Bool;
 
     /* If the sending charset is UTF-8 */
     private var utfEnabled : Bool;
@@ -128,6 +129,7 @@ class CommandLineHandler
     public function reset()
     {
 	setCharByChar(false);
+	cmdInputMode = false;
 	inputString = "";
 	inputPosition = 0;
     }
@@ -142,6 +144,11 @@ class CommandLineHandler
 	drawInputStringFrom(0);
     }
 
+    public function isCommandInputMode() : Bool
+    {
+	return cmdInputMode;
+    }
+
     public function handleKey(e : KeyboardEvent)
     {
 	handleKey_(e);
@@ -154,7 +161,7 @@ class CommandLineHandler
 	    var c = s.charCodeAt(i);
 	    if(c == 10) handleEnter(); // LF
 	    else if(c == 13) 0; // CR, ignore.
-	    else if(isCharByCharMode()) {
+	    else if(!isLineInputMode()) {
 		sendChar(c);
 	    } else {
 		if(c >= 32) handleNormalKey(c);
@@ -631,9 +638,9 @@ class CommandLineHandler
 	}
     }
 
-    private inline function isCharByCharMode() : Bool
+    private inline function isLineInputMode() : Bool
     {
-	return charByChar;
+	return cmdInputMode || !charByChar;
     }
 
     private function sendUnicode(c : Int)
@@ -781,7 +788,7 @@ class CommandLineHandler
 
     private function handleEnter()
     {
-	if(isCharByCharMode()) {
+	if(!isLineInputMode()) {
 	    sendByte(13);
 	    sendByte(10);
 	    return;
@@ -794,6 +801,7 @@ class CommandLineHandler
 	    cb.lineFeed();
 	    cb.setExtraCurs(cb.getCursX(), cb.getCursY());
 	}
+	cmdInputMode = false;
 	drawPrompt();
     }
 
@@ -828,7 +836,7 @@ class CommandLineHandler
 		cb.setCurs(0, 0);
 		drawPrompt();
 	    case 110: // N
-		if(!isCharByCharMode()) {
+		if(isLineInputMode()) {
 		    if(currentHistory != -1 &&
 			    currentHistory+1 != history.length) {
 			removeInputString();
@@ -840,7 +848,7 @@ class CommandLineHandler
 		    }
 		}
 	    case 112: // P
-		if(!isCharByCharMode()) {
+		if(isLineInputMode()) {
 		    if(currentHistory == -1) {
 			if(history.length > 0) {
 			    removeInputString();
@@ -915,7 +923,7 @@ class CommandLineHandler
 
     private function localEditChars() : Bool
     {
-	return !isCharByCharMode() && config.getVar("LOCAL_EDIT") == "on";
+	return !charByChar && config.getVar("LOCAL_EDIT") == "on";
     }
 
     private function sendMacro(name : String)
@@ -1063,21 +1071,21 @@ class CommandLineHandler
                 case Keyboard.INSERT:
 		    if(isTextInput) return;
 		    cb.scrollbackToBottom();
-		    if(isCharByCharMode()) handleFKey(e, "INSERT", -1, 2);
+		    if(!isLineInputMode()) handleFKey(e, "INSERT", -1, 2);
                 case Keyboard.DELETE:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
-		    if(isCharByCharMode()) handleFKey(e, "DELETE", -1, 3);
+		    if(!isLineInputMode()) handleFKey(e, "DELETE", -1, 3);
 		    else handleDelete();
                 case Keyboard.BACKSPACE:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
-		    if(isCharByCharMode()) sendByte(127); // DEL
+		    if(!isLineInputMode()) sendByte(127); // DEL
 		    else handleBackspace();
                 case Keyboard.TAB:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
-		    if(isCharByCharMode()) sendByte(9); // TAB.
+		    if(!isLineInputMode()) sendByte(9); // TAB.
 		    else {
 			tabNumber = oldTabNumber;
 			handleTab();
@@ -1087,10 +1095,18 @@ class CommandLineHandler
 	            cb.scrollbackToBottom();
 		    handleEnter();
                 default:
+		    if(e.keyCode == 219 && !isTextInput && e.ctrlKey) {
+			if(!isLineInputMode()) {
+			    cb.scrollbackToBottom();
+			    appendText("\r\nsoiled>");
+			    cmdInputMode = true;
+			}
+			return;
+		    }
 	 	    if(!isTextInput && !e.ctrlKey && c != 27) return;
 	 	    if(isTextInput && c < 32) return; // On MAC CTRL-A etc is reported here.
 	            cb.scrollbackToBottom();
-		    if(isCharByCharMode()) {
+		    if(!isLineInputMode()) {
 		        if(e.ctrlKey && c >= 96) c -= 96;
 		        if(c == 0) return; // NUL
 		        sendChar(c);

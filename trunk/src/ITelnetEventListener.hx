@@ -23,6 +23,10 @@
    commands in the protocol stream */
 interface ITelnetEventListener {
 
+    /* A function that tells the Telnet client that it is okay
+       to receive more data */
+    function shouldReceiveData() : Bool;
+
     /* Tells the client if the server is supposed to echo entered
        text or not. */
     function changeServerEcho(remoteEcho : Bool) : Void;

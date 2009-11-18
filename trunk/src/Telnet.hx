@@ -126,7 +126,7 @@ class Telnet extends flash.events.EventDispatcher {
 	}
 
 	s = new Socket();
-	s.addEventListener("socketData", gotData);
+	s.addEventListener("socketData", onSocketData);
 	s.addEventListener("close", gotClose);
 	s.addEventListener("connect", gotConnect);
 	s.addEventListener("securityError", gotSecError);
@@ -398,8 +398,9 @@ class Telnet extends flash.events.EventDispatcher {
     }
 
     /* Process received data. */
-    private function gotData(o : Dynamic)
+    private function onSocketData(o : Dynamic)
     {
+	if(!eventListener.shouldReceiveData()) return;
 	try {
 	    while(s.bytesAvailable > 0) {
 		var b = s.readByte();

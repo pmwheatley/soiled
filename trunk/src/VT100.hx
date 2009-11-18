@@ -191,6 +191,11 @@ class VT100 implements ITelnetEventListener,
     /* From ITelnetEventListener                                           */
     /**********************************************************************/
 
+    public function shouldReceiveData() : Bool
+    {
+	return !clh.isCommandInputMode();
+    }
+
     // Appends local text.
     public function appendText(s : String)
     {
@@ -1317,11 +1322,6 @@ class VT100 implements ITelnetEventListener,
 	    }
 	    promptHasBeenDrawn = false;
 	}
-    }
-
-    private inline function isCharByCharMode() : Bool
-    {
-	return !localEcho;
     }
 
     private function sendUnicode(c : Int)
