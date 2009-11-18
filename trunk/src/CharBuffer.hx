@@ -1135,7 +1135,7 @@ class CharBuffer extends Bitmap {
 	if(currHeight > fontHeight) fontHeight = currHeight;
     }
 
-    private function initFont(fontName, fontSize)
+    private function initFont(fontName, fontSize : Int)
     {
 	var format = new TextFormat();
 	format.size = fontSize;
