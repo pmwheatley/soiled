@@ -65,6 +65,17 @@ class CharAttributes {
 	colours[0] = 0x333333;
     }
 
+    /**
+      Sets the colours from the values of a 6*16 character
+      long string of hex encoded colours.
+     **/
+    public static function setColours(text : String)
+    {
+	for(i in 0...15) {
+	    colours[i] = Std.parseInt('0x' + text.substr(i*6, 6));
+	}
+    }
+
     public static function getRGBColour(c)
     {
 	return colours[c];

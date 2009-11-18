@@ -25,8 +25,30 @@ var requiredMajorVersion = 9;
 var requiredMinorVersion = 0;
 var requiredRevision = 0;
 var flashvars = "s=" + server + "&p=" + port;
-flashvars += "&defaultFgCol=2";
-flashvars += "&defaultBgCol=0";
+// flashvars += "&defaultFgCol=2";
+// flashvars += "&defaultBgCol=0";
+
+/*
+// All the colours need to be changed if any is changed.
+flashvars += "&colours=";
+flashvars += "000000";
+flashvars += "800000"; // Red
+flashvars += "008000"; // Green
+flashvars += "808000"; // Yellow
+flashvars += "000080"; // Blue
+flashvars += "800080"; // Magenta
+flashvars += "408080"; // Cyan
+flashvars += "C0C0C0"; // light gray
+flashvars += "000000"; // Bright-Black
+flashvars += "FF0000"; // Bright-Red
+flashvars += "00FF00"; // Bright-Green
+flashvars += "FFFF00"; // Bright-Yellow
+flashvars += "0000FF"; // Bright-Blue
+flashvars += "FF00FF"; // Bright-Purple
+flashvars += "80FFFF"; // Bright-Cyan
+flashvars += "FFFFFF"; // Bright-light gray
+*/
+
 if(debug) flashvars += "&debug=on";
 if(localEdit) flashvars += "&localEdit=on";
 else flashvars += "&localEdit=off";

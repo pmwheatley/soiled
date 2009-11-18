@@ -164,6 +164,9 @@ class CharBuffer extends Bitmap {
 		debug = true;
 		CharAttributes.setDebug();
 	    }
+	    if(params.colours != null) {
+		CharAttributes.setColours(params.colours);
+	    }
 
 	    beepSound = new Sound(new URLRequest("beep.mp3")); // MUST BE 44.100kHz!
 
