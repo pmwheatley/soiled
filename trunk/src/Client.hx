@@ -17,17 +17,19 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-import flash.ui.ContextMenu;
-import flash.ui.ContextMenuItem;
 import flash.events.ContextMenuEvent;
-
+import flash.events.Event;
+import flash.events.IOErrorEvent;
+import flash.events.TextEvent;
+import flash.net.URLLoader;
+import flash.net.URLRequest;
 import flash.text.TextField;
 import flash.text.TextFormat;
 import flash.text.TextFieldType;
 import flash.text.TextFieldAutoSize;
-import flash.events.TextEvent;
-
 import flash.system.Security;
+import flash.ui.ContextMenu;
+import flash.ui.ContextMenuItem;
 
 /* The main class, it sets up the other classes,
    routes the I/O and GUI events to the other classes.
@@ -44,6 +46,8 @@ class Client {
     static var mouseDown : Bool;
     static var lastX : Int;
     static var lastY : Int;
+
+    private static var loader : URLLoader;
 
 
     /* Convert an integer to its character value (as a string) */
@@ -259,25 +263,30 @@ class Client {
             onResize(null);
 
 
-            charBuffer.appendText("\n\n Soiled, version pre-0.45 (" + CompileTime.time + ")\n" +
+	    charBuffer.appendText("Soiled, version pre-0.45 (" + CompileTime.time + ")\n" +
 		    "  (C)2007-2009 Sebastian Andersson.");
+
+	    loader = new URLLoader();
+	    loader.addEventListener(Event.COMPLETE, onMotdLoaded);
+	    loader.addEventListener(IOErrorEvent.IO_ERROR, onMotdError);
+	    loader.load(new URLRequest("soiled.txt"));
 
 	    var contextMenu = new ContextMenu();
 	    contextMenu.hideBuiltInItems();
 
 
-/* #if flash10
+	    /* #if flash10
 
-   This doesn't work on textfields... One has got to low the exceptions they
-   make all of the time...
+	       This doesn't work on textfields... One has got to low the exceptions they
+	       make all of the time...
 
-	    contextMenu.clipboardMenu = true;
-	    contextMenu.clipboardItems.copy = false;
-	    contextMenu.clipboardItems.cut = false;
-	    contextMenu.clipboardItems.paste = true;
-	    contextMenu.clipboardItems.clear = false;
-	    contextMenu.clipboardItems.selectAll = false;
-  #end */
+	       contextMenu.clipboardMenu = true;
+	       contextMenu.clipboardItems.copy = false;
+	       contextMenu.clipboardItems.cut = false;
+	       contextMenu.clipboardItems.paste = true;
+	       contextMenu.clipboardItems.clear = false;
+	       contextMenu.clipboardItems.selectAll = false;
+#end */
 
 	    var customMenu = new ContextMenuItem("Copy Selected Text");
 	    contextMenu.customItems.push(customMenu);
@@ -293,11 +302,11 @@ class Client {
 	    textField.contextMenu = contextMenu;
 
 
-            flash.Lib.current.stage.addEventListener(flash.events.KeyboardEvent.KEY_DOWN, onKeyDown);
-            flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, onMouseDown);
-            flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, onMouseUp);
-            flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, onMouseMove);
-            flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.DOUBLE_CLICK, onDoubleClick);
+	    flash.Lib.current.stage.addEventListener(flash.events.KeyboardEvent.KEY_DOWN, onKeyDown);
+	    flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_DOWN, onMouseDown);
+	    flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_UP, onMouseUp);
+	    flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.MOUSE_MOVE, onMouseMove);
+	    flash.Lib.current.stage.addEventListener(flash.events.MouseEvent.DOUBLE_CLICK, onDoubleClick);
 	    flash.Lib.current.stage.doubleClickEnabled = true;
 
 #if flash10
@@ -305,13 +314,21 @@ class Client {
 	    // flash.Lib.current.stage.addEventListener(flash.events.Event.PASTE, onPasteFromTextField);
 #end
 
-            // flash.Lib.current.stage.focus = vt100;
-            flash.Lib.current.stage.addEventListener("resize", onResize);
-	    charBuffer.appendText("\n\nClick on this window to connect.\nWrite /help to read the documentation.\n");
+	    // flash.Lib.current.stage.focus = vt100;
+	    flash.Lib.current.stage.addEventListener("resize", onResize);
+	} catch(ex : Dynamic) {
+	    trace(ex);
+	}
+    }
 
-        } catch(ex : Dynamic) {
-            trace(ex);
-        }
+    private static function onMotdLoaded(o : Dynamic)
+    {
+	charBuffer.appendText(loader.data);
+    }
+
+    private static function onMotdError(o : Dynamic)
+    {
+	charBuffer.appendText("Failed to load soiled.txt: " + o);
     }
 
     // A null-trace method to disable tracing.
