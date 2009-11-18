@@ -79,6 +79,7 @@ class CommandLineHandler
 			config : Config)
     {
 	try {
+	    this.isMonospaceCache = new Hash<Bool>();
 	    this.sendByte = sendByte;
 	    this.drawPrompt = drawPrompt;
 	    this.cb = charBuffer;
@@ -516,22 +517,53 @@ class CommandLineHandler
 	return 0;
     }
 
+    private var isMonospaceCache : Hash<Bool>;
+
+    private function isMonospaceFont(fontName : String) : Bool
+    {
+	if(isMonospaceCache.exists(fontName)) {
+	    return isMonospaceCache.get(fontName);
+	}
+	var format = new flash.text.TextFormat();
+	format.size = 16;
+	format.font = fontName;
+	format.italic = true;
+	format.underline = true;
+
+	var t = new flash.text.TextField();
+	t.defaultTextFormat = format;
+	t.text = "W i";
+	var r = t.getCharBoundaries(0);
+	var currWidth0 = Math.ceil(r.width);
+	r = t.getCharBoundaries(1);
+	var currWidth1 = Math.ceil(r.width);
+	r = t.getCharBoundaries(2);
+	var currWidth2 = Math.ceil(r.width);
+
+	var result : Bool = currWidth0 == currWidth1 &&
+                            currWidth1 == currWidth2;
+	isMonospaceCache.set(fontName, result);
+	return result;
+    }
+
     private function handleCmdFont(last : Int)
     {
 	var cmd = StringTools.trim(inputString.substr(last));
 	if(cmd.length == 0) {
 	    var names = new Array<String>();
 	    for(font in flash.text.Font.enumerateFonts(true)) {
-		if(font.fontStyle == flash.text.FontStyle.REGULAR)
+		if(font.fontStyle == flash.text.FontStyle.REGULAR &&
+		   isMonospaceFont(font.fontName))
 		    names.push(font.fontName);
 	    }
 	    names.sort(StringComparer);
 	    var tmp = new StringBuf();
-	    tmp.add("\nAvailable fonts are:");
+	    tmp.add("\nAvailable fonts are: ");
 	    for(name in names) {
-		tmp.add(" \"" + name + "\"");
+		tmp.add("\n    " + name + "");
 	    }
-	    appendText(tmp.toString());
+	    cb.appendText(tmp.toString());
+	    cb.setExtraCurs(cb.getCursX(), cb.getCursY());
 	} else {
 	    var first = cmd.indexOf(" ");
 	    if(first == -1) {
