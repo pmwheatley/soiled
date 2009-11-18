@@ -25,6 +25,8 @@ var requiredMajorVersion = 9;
 var requiredMinorVersion = 0;
 var requiredRevision = 0;
 var flashvars = "s=" + server + "&p=" + port;
+flashvars += "&defaultFgCol=2";
+flashvars += "&defaultBgCol=0";
 if(debug) flashvars += "&debug=on";
 if(localEdit) flashvars += "&localEdit=on";
 else flashvars += "&localEdit=off";

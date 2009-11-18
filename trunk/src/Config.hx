@@ -32,6 +32,9 @@ class Config
 
     private var minWordLength : Int;
 
+    private var defaultFgColour : Int;
+    private var defaultBgColour : Int;
+
     /**
       The constructor loads the config values from storage, or
       creates new config values if this is the first visit.
@@ -133,6 +136,22 @@ class Config
 	    if(s == "F") return "FREQUENCY";
 	}
 	return "LEXIGRAPHIC";
+    }
+
+    /** Gets the value of the FG_COL variable,
+        or a suitable default value.
+     **/
+    public function getDefaultFgColour() : Int
+    {
+	return defaultFgColour;
+    }
+
+    /** Gets the value of the BG_COL variable,
+        or a suitable default value.
+     **/
+    public function getDefaultBgColour() : Int
+    {
+	return defaultBgColour;
     }
 
     /**
@@ -280,6 +299,8 @@ class Config
      **/
     private function initVarCache()
     {
+	var params : Dynamic<String> = flash.Lib.current.loaderInfo.parameters;
+
 	var val = getVar("MIN_WORD_LEN");
 	minWordLength = 2;
 	if(val != null) {
@@ -289,6 +310,26 @@ class Config
 	    }
 	}
 	// trace("MIN_WORD_LEN: " + minWordLength);
+
+	val = getVar("FG_COL");
+	if(val == null) val = params.defaultFgCol;
+	defaultFgColour = 2;
+	if(val != null && val.length > 0) {
+	    var v = Std.parseInt(val);
+	    if(v != null && v >= 0 && v <= 7) {
+		defaultFgColour = v;
+	    }
+	}
+
+	val = getVar("BG_COL");
+	if(val == null) val = params.defaultBgCol;
+	defaultBgColour = 0;
+	if(val != null && val.length > 0) {
+	    var v = Std.parseInt(val);
+	    if(v != null && v >= 0 && v <= 7) {
+		defaultBgColour = v;
+	    }
+	}
     }
 
     /**

@@ -717,8 +717,14 @@ class VT100 implements ITelnetEventListener,
 		    var b = params[i];
 		    if(b >= 30 && b <= 37) {
 			cb.getAttributes().setFgColour(b-30);
+		    } else if(b == 39) {
+			cb.getAttributes().setFgColour(
+					config.getDefaultFgColour());
 		    } else if(b >= 40 && b <= 47) {
 			cb.getAttributes().setBgColour(b-40);
+		    } else if(b == 49) {
+			cb.getAttributes().setBgColour(
+					config.getDefaultBgColour());
 		    } else if(b >= 90 && b <= 97) {
 			cb.getAttributes().setFgColour(b-82);
 		    } else if(b >= 100 && b <= 107) {
@@ -1279,8 +1285,8 @@ class VT100 implements ITelnetEventListener,
     {
 	var attr = cb.getAttributes();
 	attr.setDefaultAttributes();
-	attr.setBgColour(0);
-	attr.setFgColour(2);
+	attr.setFgColour(config.getDefaultFgColour());
+	attr.setBgColour(config.getDefaultBgColour());
     }
 
     private function drawPrompt()
