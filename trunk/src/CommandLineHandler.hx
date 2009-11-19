@@ -536,19 +536,26 @@ class CommandLineHandler
 	format.font = fontName;
 	format.italic = true;
 	format.underline = true;
-
 	var t = new flash.text.TextField();
+
 	t.defaultTextFormat = format;
 	t.text = "W i";
 	var r = t.getCharBoundaries(0);
-	var currWidth0 = Math.ceil(r.width);
-	r = t.getCharBoundaries(1);
-	var currWidth1 = Math.ceil(r.width);
-	r = t.getCharBoundaries(2);
-	var currWidth2 = Math.ceil(r.width);
+	var result : Bool = false;
+	if(r != null) {
+	    var currWidth0 = Math.ceil(r.width);
+	    r = t.getCharBoundaries(1);
+	    if(r != null) {
+		var currWidth1 = Math.ceil(r.width);
+		r = t.getCharBoundaries(2);
+		if(r != null) {
+		    var currWidth2 = Math.ceil(r.width);
 
-	var result : Bool = currWidth0 == currWidth1 &&
-                            currWidth1 == currWidth2;
+		    result = currWidth0 == currWidth1 &&
+			currWidth1 == currWidth2;
+		}
+	    }
+	}
 	isMonospaceCache.set(fontName, result);
 	return result;
     }
@@ -560,7 +567,7 @@ class CommandLineHandler
 	    var names = new Array<String>();
 	    for(font in flash.text.Font.enumerateFonts(true)) {
 		if(font.fontStyle == flash.text.FontStyle.REGULAR &&
-		   isMonospaceFont(font.fontName))
+			isMonospaceFont(font.fontName))
 		    names.push(font.fontName);
 	    }
 	    names.sort(StringComparer);
