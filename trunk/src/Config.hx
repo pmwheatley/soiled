@@ -34,6 +34,8 @@ class Config
 
     private var cursorType : String;
 
+    private var useIbmGraphics : Bool;
+
     private var defaultFgColour : Int;
     private var defaultBgColour : Int;
 
@@ -142,6 +144,15 @@ class Config
 	}
 	return "LEXIGRAPHIC";
     }
+
+    /** Returns the value of the IBM_GRAPHICS variable,
+        or a suitable default value.
+     **/
+    public function getUseIbmGraphics() : Bool
+    {
+	return useIbmGraphics;
+    }
+
 
     /** Returns the value of the CURSOR_TYPE variable,
         or a suitable default value.
@@ -349,6 +360,13 @@ class Config
 	cursorType = "block";
 	if(val != null && val.length > 0) {
 	    cursorType = val;
+	}
+
+	val = getVar("IBM_GRAPHICS");
+	if(val == null) val = params.IBMGraphics;
+	useIbmGraphics = false;
+	if(val != null && val.length > 0) {
+	    useIbmGraphics = true;
 	}
     }
 
