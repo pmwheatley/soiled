@@ -152,6 +152,7 @@ class CharBuffer extends Bitmap {
     /* When an area has been marked/selected before being copied,
        its text is put in this string. */
     private var tmpSelectedText : String;
+    private var tmpSelectedAttributes : Array<CharAttributes>;
 
     /* When turned on, various debug code could be run. */
     private var debug : Bool;
@@ -606,6 +607,8 @@ class CharBuffer extends Bitmap {
     {
 	var buff = new StringBuf();
 
+	tmpSelectedAttributes = new Array<CharAttributes>();
+
 	for(y in startOfSelectionRow ... endOfSelectionRow+1) {
 	    if(markSelected)
 		for(x in 0 ... columns)
@@ -625,6 +628,7 @@ class CharBuffer extends Bitmap {
 		var char = charBuffer[x + y * columns];
 		if(char < 32) char = 32;
 		buff.addChar(char);
+		tmpSelectedAttributes.push(attrBuffer[x + y * columns]);
 	    }
 	    if(y != endOfSelectionRow) {
 		buff.addChar(13);
@@ -737,6 +741,62 @@ class CharBuffer extends Bitmap {
 	beginUpdate();
 	removeSelection();
 	endUpdate();
+
+	return true;
+    }
+
+    /* Returns true if there is a section that is marked/selected
+       and it could be copied */
+    public function doCopyAsHtml() : Bool
+    {
+	if(startOfSelectionX < 0) return false;
+
+	beginUpdate();
+	removeSelection();
+	endUpdate();
+
+	var buff = new StringBuf();
+	buff.add("<pre>");
+	var ai = 0;
+	var first = true;
+	var len = 0;
+	var oldAttribute = new CharAttributes();
+	for(i in 0...tmpSelectedText.length) {
+	    var c = tmpSelectedText.charAt(i);
+	    if(c == "\r") { // New line.
+		while(len < columns) {
+		    buff.add(" ");
+		    len++;
+		}
+		buff.add("\r\n");
+		len = 0;
+	    } else if(c == "\n") {
+		// Ignore.
+	    } else {
+		var a = tmpSelectedAttributes[ai];
+		if(first ||
+		   !a.equal(oldAttribute)) {
+		    if(!first) {
+			buff.add("</span>");
+		    }
+		    buff.add("<span style=\"background-color:#");
+		    buff.add(StringTools.hex(a.getBgColour(), 6));
+		    buff.add(";color:#");
+		    buff.add(StringTools.hex(a.getFgColour(), 6));
+		    // TODO: Add more attributes here.
+	            oldAttribute = a;
+		    buff.add("\">");
+		}
+		buff.add(c);
+		len++;
+		first = false;
+		ai++;
+	    }
+	}
+	if(!first) buff.add("</span>");
+	buff.add("</pre>\r\n");
+
+	latestSelectedText = buff.toString();
 
 	return true;
     }

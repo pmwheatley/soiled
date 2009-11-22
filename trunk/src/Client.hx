@@ -65,6 +65,13 @@ class Client {
 	    flash.system.System.setClipboard(charBuffer.getSelectedText());
     }
 
+    /* The "Copy As HTML" action has been performed by the user */
+    private static function onCopyHtml(o : Dynamic)
+    {
+	if(charBuffer.doCopyAsHtml())
+	    flash.system.System.setClipboard(charBuffer.getSelectedText());
+    }
+
     /* The "Paste" action has been performed by the user */
     private static function onPaste(o : Dynamic)
     {
@@ -291,12 +298,19 @@ class Client {
 	    var customMenu = new ContextMenuItem("Copy Selected Text");
 	    contextMenu.customItems.push(customMenu);
 	    customMenu.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onCopy);
-	    var customMenu = new ContextMenuItem("Paste Copied Text");
+
+	    customMenu = new ContextMenuItem("Paste Copied Text");
 	    contextMenu.customItems.push(customMenu);
 	    customMenu.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onPaste);
-	    var customMenu = new ContextMenuItem("Copy and Paste");
+
+	    customMenu = new ContextMenuItem("Copy and Paste");
 	    contextMenu.customItems.push(customMenu);
 	    customMenu.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onCopyPaste);
+
+	    customMenu = new ContextMenuItem("Copy Selected Text As HTML");
+	    contextMenu.customItems.push(customMenu);
+	    customMenu.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onCopyHtml);
+
 	    charBuffer.parent.contextMenu = contextMenu;
 
 	    textField.contextMenu = contextMenu;
