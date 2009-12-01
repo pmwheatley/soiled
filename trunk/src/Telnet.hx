@@ -465,6 +465,7 @@ class Telnet extends flash.events.EventDispatcher {
 		}
 	    }
 	    eventListener.flush();
+	    flush();
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
