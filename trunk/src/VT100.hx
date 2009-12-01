@@ -212,6 +212,9 @@ class VT100 implements ITelnetEventListener,
 	lnmMode = false;
 	irmMode = false;
 
+	setUtfEnabled(config.getUtf8());
+	utfState = 0;
+
 	handle_RIS();
     }
 
@@ -922,13 +925,11 @@ class VT100 implements ITelnetEventListener,
 	if(intermediateChars == "%") {
 	    if(cmd == 64) { // @ -- Change to latin-1
 		if(utfEnabled) {
-		    utfEnabled = false;
-		    clh.setUtfCharSet(false);
+		    setUtfEnabled(false);
 		}
 	    } else if(cmd == 71) { // G -- Change to UTF-8
 		if(!utfEnabled) {
-		    utfEnabled = true;
-		    clh.setUtfCharSet(true);
+		    setUtfEnabled(true);
 		    utfState = 0;
 		}
 	    } else unknownCmd("ESC ", cmd, intermediateChars);

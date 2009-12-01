@@ -34,7 +34,7 @@ class Config
 
     private var cursorType : String;
 
-    private var useIbmGraphics : Bool;
+    private var charset : String;
 
     private var defaultFgColour : Int;
     private var defaultBgColour : Int;
@@ -117,9 +117,10 @@ class Config
     {
 	vars.set(name, value);
 	if(name == "MIN_WORD_LEN" ||
-	   name == "FG_COL" ||
 	   name == "BG_COL" ||
-	   name == "CURSOR_TYPE") {
+	   name == "CHARSET" ||
+	   name == "CURSOR_TYPE" ||
+	   name == "FG_COL") {
 	    initVarCache();
 	}
     }
@@ -145,12 +146,20 @@ class Config
 	return "LEXIGRAPHIC";
     }
 
-    /** Returns the value of the IBM_GRAPHICS variable,
-        or a suitable default value.
+    /** Returns true if the value of the CHARSET variable
+        is CP437.
      **/
     public function getUseIbmGraphics() : Bool
     {
-	return useIbmGraphics;
+	return charset == "CP437";
+    }
+
+    /** Returns true if the value of the CHARSET variable
+        is utf-8.
+     **/
+    public function getUtf8() : Bool
+    {
+	return charset == "utf-8";
     }
 
 
@@ -362,11 +371,11 @@ class Config
 	    cursorType = val;
 	}
 
-	val = getVar("IBM_GRAPHICS");
-	if(val == null) val = params.IBMGraphics;
-	useIbmGraphics = false;
+	val = getVar("CHARSET");
+	if(val == null) val = params.charset;
+	charset = "iso-8859-1";
 	if(val != null && val.length > 0) {
-	    useIbmGraphics = true;
+	    charset = val;
 	}
     }
 
