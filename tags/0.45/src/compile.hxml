@@ -1,0 +1,5 @@
+-swf soiled.swf
+-swf-version 9
+-swf-header 800:400:25:040303
+-main Client
+-xml soiled.swf.xml

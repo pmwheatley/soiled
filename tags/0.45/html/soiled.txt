@@ -1,0 +1,4 @@
+
+
+Click on this window to connect.
+Write /help to read the documentation.
