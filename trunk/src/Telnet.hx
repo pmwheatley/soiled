@@ -53,7 +53,7 @@ class Telnet extends flash.events.EventDispatcher {
 
     private static var terminals : Array<String> = [
     	"xterm-color",
-	"Soiled-pre-0.45",
+	"Soiled-0.45",
 	"Soiled",
     	"xterm",
     	"vt102",
