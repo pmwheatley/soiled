@@ -1,6 +1,29 @@
 #summary Release Note for version 0.44
+#labels Featured
 
 = Introduction =
+
+Version 0.45 adds a bug fix, a few customisation features, support for code page 437 as well as a command/word completion feature and support for autologin.
+
+= Detailed changelist =
+ * Marked text can now be copied as HTML fragments (using span with style attributes to change colour).
+ * Added caching of entered commands and words and the ability to complete written commands/words with tab.
+ * Added the ability to change the default foreground and background colours.
+ * Added the ability to change the colour palette for colour 0..15.
+ * The default character set can now be changed to UTF-8 and CP437 (for NetHack's IBMgraphics mode). 
+ * Made it possible to change cursor type (vertical line, underline or a block).
+ * Made the first page's text be loaded dynamicly (from soiled.txt).
+ * Added the ability to enter command line mode when in char-by-char mode. It is quite limited and does not work on all platforms. (Use ctrl-]) so it is not added to the documentation.
+ * Added a limited auto-login feature.
+ * Change the /font command to only show monospace fonts.
+ * Corrected a bug where in some cases the client did not flush its output to the server.
+ * The last command and line are stored in variables (but they are not useful for anything yet).
+ * Added support for 39 and 49 parameters to SGR (reset foreground and background colours).
+ * The UTF mode is restored to default when the terminal is reset.
+ * Added support for compiling with Haxe compiler v2.04
+
+
+= The changes in version 0.45 =
 
 Version 0.44 adds the ability to change the font and open received URLs
 in new windows.

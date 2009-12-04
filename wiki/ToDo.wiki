@@ -18,5 +18,3 @@
   * Word wrapping in the client (must be setable). Lesser muds need this...
   * Expand variables in aliases/macros.
   * Set variables from regexps matching received text (limited triggers).
-  * Store last command in a variable.
-  * Store last argument in a variable.

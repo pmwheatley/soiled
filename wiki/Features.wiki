@@ -15,10 +15,11 @@ Some of the features described here might only be available in the trunk version
   * Supports the following VT100/VT102 control functions: SM, RM, DECALN, DECAWM, DECSET, DECRST, DECSTBM, CUU, CUD, CUF, CUB, CUP, HVP, IND, RI, NEL, DECSC, DECRC, DECPAM, DECKPNM, SCS, SGR, HTS, TBC, EL, ED, DCH, IL, DL, DA, DECID, RI, RIS, DECOM, IRM, LNM, FF and VT.
   * Understands xterm's 256 colour sequences.
   * char-by-char mode, sort off... When local echo is turned off, it operates in char-by-char mode.
-  * Works as a client to most MUD servers and one can play !NetHack with DECGraphics via it. :-)
+  * Works as a client to most MUD servers and one can play !NetHack with DECGraphics and IBMgraphics via it. :-)
   * Basic scrollback buffer. Use shift + PGUP/PGDN to look at previous output.
-  * Copy & Paste.
+  * Copy & Paste (and copy as html for taking "screendumps" to html pages).
   * Aliases/macros. There is basic support for aliases & macros, but nothing fancy yet.
   * Internal commands can be viewed with: /help
   * Command/ctrl clicking an URL will open it in the browser.
   * TAB expansion of previously entered commands/words.
+  * Limited support for auto-login, it just sends a string at connection time.

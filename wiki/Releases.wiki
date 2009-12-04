@@ -1,5 +1,4 @@
 #summary A link page to the versious release notes.
-#labels Featured
 
 = Introduction =
 
@@ -7,5 +6,6 @@ The latest releases should have a release note page linked from this page.
 
 = Details =
 
+* ReleaseNoteForVersion_0_45 - 2009-12-04
 * ReleaseNoteForVersion_0_44 - 2009-10-13
 * ReleaseNoteForVersion_0_43
