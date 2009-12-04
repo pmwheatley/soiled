@@ -270,7 +270,7 @@ class Client {
             onResize(null);
 
 
-	    charBuffer.appendText("Soiled, version 0.45 (" + CompileTime.time + ")\n" +
+	    charBuffer.appendText("Soiled, version pre-0.46 (" + CompileTime.time + ")\n" +
 		    "  (C)2007-2009 Sebastian Andersson.");
 
 	    loader = new URLLoader();
