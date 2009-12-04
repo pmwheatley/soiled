@@ -71,6 +71,10 @@ class CharAttributes {
      **/
     public static function setColours(text : String)
     {
+	if(text.length != 16*6) {
+	    trace("The colours parameter does not have 16*6 characters");
+	    return;
+	}
 	for(i in 0...15) {
 	    colours[i] = Std.parseInt('0x' + text.substr(i*6, 6));
 	}
