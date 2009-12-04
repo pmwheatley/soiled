@@ -1,4 +1,4 @@
-#summary Release Note for version 0.44
+#summary Release Note for version 0.45
 #labels Featured
 
 = Introduction =
@@ -23,7 +23,7 @@ Version 0.45 adds a bug fix, a few customisation features, support for code page
  * Added support for compiling with Haxe compiler v2.04
 
 
-= The changes in version 0.45 =
+= The changes in version 0.44 =
 
 Version 0.44 adds the ability to change the font and open received URLs
 in new windows.
