@@ -342,7 +342,8 @@ class Client {
 
     private static function onMotdError(o : Dynamic)
     {
-	charBuffer.appendText("Failed to load soiled.txt: " + o);
+	trace("Failed to load soiled.txt: " + o);
+	charBuffer.appendText("\n\nClick on this window to connect.\nWrite /help to read the documentation.\n");
     }
 
     // A null-trace method to disable tracing.
