@@ -4,3 +4,4 @@
   * http://www.xfree86.org/current/ctlseqs.html - xterm control sequences.
   * http://vt100.net/emu/ - Good information about terminal emulators. The control sequence handling in Soiled should really implement the described parser.
   * http://invisible-island.net/vttest/vttest.html - Vttest tests for testing VT100/VT220 terminal emulators.
+  * http://code.google.com/p/hscript/ - haXe script could be used for triggers and macros perhaps?
