@@ -17,12 +17,13 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
+import flash.events.KeyboardEvent;
 
 interface ICommandLineHandling {
 
     /** If non-ascii characters should be sent as UTF-8 or
         as single bytes to the server. **/
-    function setUtfCharSet(isOn : Bool);
+    function setUtfCharSet(isOn : Bool) : Void;
 
     /**
         In Char-by-char mode, the command line handling is done
@@ -52,24 +53,24 @@ interface ICommandLineHandling {
     function setApplicationKeypad(isOn : Bool) : Void;
 
     /** Reset the command line handling **/
-    function reset();
+    function reset() : Void;
 
     /** Remove the input string (aka command line) from the character
         buffer. **/
-    function removeInputString();
+    function removeInputString() : Void;
 
     /** Draw the input string (aka command line) in the character buffer. **/
-    function drawInputString();
+    function drawInputString() : Void;
 
     /** Is the system in command input mode, that is the system is waiting
         for a local command, even if it is in char-by-char mode? **/
     function isCommandInputMode() : Bool;
 
     /** Handle a key pressed in the char-buffer. **/
-    function handleKey(e : KeyboardEvent);
+    function handleKey(e : KeyboardEvent) : Void;
 
     /** The s string have been pasted into the char-buffer.
         Handle it as if the user had written the characters
         one by one. **/
-    function doPaste(s : String);
+    function doPaste(s : String) : Void;
 }
