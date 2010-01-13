@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2009 Sebastian Andersson
+   Copyright 2007-2010 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -23,7 +23,8 @@ import flash.events.KeyboardEvent;
 
 /*
    VT100 handles input from the server and sends draw requests to
-   a CharBuffer. Input from the user is sent to a CommandLineHandler.
+   a CharBuffer. Input from the user is sent to a ICommandLineHandling
+   object.
 
    Despite its name, it is not a VT100 emulator, but it understands
    enough of it to be usable for common MUDs and most curses programs.
@@ -39,7 +40,7 @@ class VT100 implements ITelnetEventListener,
 
     private var cb : CharBuffer;
 
-    private var clh : CommandLineHandler;
+    private var clh : ICommandLineHandling;
 
     private var config : Config;
 
@@ -103,7 +104,8 @@ class VT100 implements ITelnetEventListener,
     private var tabStops : Array<Bool>;
 
     public function new(sendByte : Int -> Void,
-	                charBuffer : CharBuffer, 
+	                charBuffer : CharBuffer,
+                        clh : ICommandLineHandling,
 			config : Config)
     {
 	try {
@@ -137,8 +139,7 @@ class VT100 implements ITelnetEventListener,
 	    newPromptAttribute = new Array<CharAttributes>();
 
 	    this.config = config;
-
-	    this.clh = new CommandLineHandler(sendByte, drawPrompt, cb, config);
+	    this.clh = clh;
 
 	    promptTimer = new flash.utils.Timer(250, 1);
 	    promptTimer.addEventListener("timer", promptTimeout);
@@ -1190,6 +1191,21 @@ class VT100 implements ITelnetEventListener,
 	else cb.printChar(b);
     }
 
+    /** Draws the prompt on the CharBuffer **/
+    public function drawPrompt()
+    {
+	promptHasBeenDrawn = true;
+	var fromChar = 0;
+	while(fromChar < oldPromptString.length) {
+	    cb.printCharWithAttribute(
+		    oldPromptString.charCodeAt(fromChar),
+		    oldPromptAttribute[fromChar]);
+	    fromChar++;
+	}
+	cb.setExtraCurs(cb.getCursX(), cb.getCursY());
+	clh.drawInputString();
+    }
+
     /******************************************************/
     /* End of IVtParserListener implementation            */
     /******************************************************/
@@ -1322,20 +1338,6 @@ class VT100 implements ITelnetEventListener,
 	attr.setDefaultAttributes();
 	attr.setFgColour(config.getDefaultFgColour());
 	attr.setBgColour(config.getDefaultBgColour());
-    }
-
-    private function drawPrompt()
-    {
-	promptHasBeenDrawn = true;
-	var fromChar = 0;
-	while(fromChar < oldPromptString.length) {
-	    cb.printCharWithAttribute(
-		    oldPromptString.charCodeAt(fromChar),
-		    oldPromptAttribute[fromChar]);
-	    fromChar++;
-	}
-	cb.setExtraCurs(cb.getCursX(), cb.getCursY());
-	clh.drawInputString();
     }
 
     private function removePrompt()

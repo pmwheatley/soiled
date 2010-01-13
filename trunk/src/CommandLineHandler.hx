@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2009 Sebastian Andersson
+   Copyright 2007-2010 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 */
 
 import flash.ui.Keyboard;
+import flash.ui.KeyLocation;
 import flash.events.KeyboardEvent;
 import wordCache.WordCacheBase;
 import wordCache.FrequencyWordCache;
@@ -30,7 +31,7 @@ import wordCache.LexigraphicWordCache;
    single line editor (when in line-by-line mode), local-command
    handling and a simple help system.
  */
-class CommandLineHandler
+class CommandLineHandler implements ICommandLineHandling
 {
 
     private static inline var UTF_ERROR = 0xFFFD;
@@ -75,14 +76,12 @@ class CommandLineHandler
     private var config : Config;
 
     public function new(sendByte : Int -> Void,
-	                drawPrompt : Void -> Void,
 	                charBuffer : CharBuffer,
 			config : Config)
     {
 	try {
 	    this.isMonospaceCache = new Hash<Bool>();
 	    this.sendByte = sendByte;
-	    this.drawPrompt = drawPrompt;
 	    this.cb = charBuffer;
 	    this.config = config;
 
@@ -101,6 +100,14 @@ class CommandLineHandler
 	    trace(ex);
 	}
     }
+
+    /** Sets the function used to (re)draw the current prompt
+        on the CharBuffer. **/
+    public function setDrawPrompt(drawPrompt : Void -> Void)
+    {
+        this.drawPrompt = drawPrompt;
+    }
+
 
     public function setUtfCharSet(isOn : Bool)
     {
@@ -315,6 +322,27 @@ class CommandLineHandler
 	    sendByte(91); // [
 	}
 	sendByte(num); // A-D
+    }
+
+    private function sendNumericKey(num : Int)
+    {
+        if(applicationKeypad &&
+           num != 47) { /* 47 == '/' */
+            sendByte(27); // ESC
+            sendByte(79); // O
+            if(num >= 48 && num <= 57) {
+                sendByte(num + 64);
+            } else {
+                switch(num) {
+                    case 43: sendByte(108); // l (for +)
+                    case 45: sendByte(109); // m (for -)
+                    case 46: sendByte(110); // n (for .)
+                    default: sendByte(77);  // M (for *).
+                }
+            }
+        } else {
+            sendByte(num);
+        }
     }
 
     private function sendCollectedInput(sendReturn : Bool)
@@ -1116,7 +1144,10 @@ class CommandLineHandler
 		    if(!isLineInputMode()) {
 		        if(e.ctrlKey && c >= 96) c -= 96;
 		        if(c == 0) return; // NUL
-		        sendChar(c);
+                        if(e.keyLocation == KeyLocation.NUM_PAD)
+                            sendNumericKey(c);
+                        else
+		            sendChar(c);
 		    } else {
 			if(e.ctrlKey) handleCtrlKey(c);
 		        else handleNormalKey(c);

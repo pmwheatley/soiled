@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2009 Sebastian Andersson
+   Copyright 2007-2010 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -252,7 +252,11 @@ class Client {
 
             config = new Config();
             charBuffer = new CharBuffer(onNewFont, config);
-            vt100 = new VT100(sendByte, charBuffer, config);
+	    var clh = new CommandLineHandler(sendByte,
+                                             charBuffer,
+                                             config);
+            vt100 = new VT100(sendByte, charBuffer, clh, config);
+            clh.setDrawPrompt(vt100.drawPrompt);
 
 	    textField = new TextField();
 	    textField.type = TextFieldType.INPUT;
