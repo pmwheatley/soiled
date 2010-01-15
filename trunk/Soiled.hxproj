@@ -38,7 +38,11 @@
   </library>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>
-    <!-- example: <hidden path="..." /> -->
+    <hidden path="src\soiled.swf.xml" />
+    <hidden path="mcts" />
+    <hidden path="src\soiled.swf" />
+    <hidden path="src\Makefile" />
+    <hidden path="src\compile.hxml" />
   </hiddenPaths>
   <!-- Executed before build -->
   <preBuildCommand />
