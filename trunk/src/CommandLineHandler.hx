@@ -24,8 +24,6 @@ import wordCache.WordCacheBase;
 import wordCache.FrequencyWordCache;
 import wordCache.LexigraphicWordCache;
 
-// TODO: Implement Application Keypad.
-
 /*
    A class that handles input from the user. It implements a
    single line editor (when in line-by-line mode), local-command
@@ -1138,7 +1136,7 @@ class CommandLineHandler implements ICommandLineHandling
 			}
 			return;
 		    }
-	 	    if(!isTextInput && !e.ctrlKey && c != 27) return;
+	 	    if(isTextInput && !e.ctrlKey && c != 27) return;
 	 	    if(isTextInput && c < 32) return; // On MAC CTRL-A etc is reported here.
 	            cb.scrollbackToBottom();
 		    if(!isLineInputMode()) {
