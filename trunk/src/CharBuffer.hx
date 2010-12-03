@@ -734,13 +734,22 @@ class CharBuffer extends Bitmap {
        and it could be copied */
     public function doCopy() : Bool
     {
-	if(startOfSelectionX < 0) return false;
+	if((startOfSelectionX < 0) ||
+	   (startOfSelectionColumn == endOfSelectionColumn &&
+	    startOfSelectionRow == endOfSelectionRow)) {
+	    startOfSelectionRow = 0;
+	    endOfSelectionRow = getHeight()-1;
+	    startOfSelectionColumn = 0;
+	    endOfSelectionColumn = getWidth()-1;
+            updateTmpSelectionBuffer(false);
+	    latestSelectedText = tmpSelectedText;
+	} else {
+	    latestSelectedText = tmpSelectedText;
 
-	latestSelectedText = tmpSelectedText;
-
-	beginUpdate();
-	removeSelection();
-	endUpdate();
+	    beginUpdate();
+	    removeSelection();
+	    endUpdate();
+	}
 
 	return true;
     }
@@ -749,11 +758,20 @@ class CharBuffer extends Bitmap {
        and it could be copied */
     public function doCopyAsHtml() : Bool
     {
-	if(startOfSelectionX < 0) return false;
-
-	beginUpdate();
-	removeSelection();
-	endUpdate();
+	if((startOfSelectionX < 0) ||
+	   (startOfSelectionColumn == endOfSelectionColumn &&
+	    startOfSelectionRow == endOfSelectionRow)) {
+	    startOfSelectionRow = 0;
+	    endOfSelectionRow = getHeight()-1;
+	    startOfSelectionColumn = 0;
+	    endOfSelectionColumn = getWidth()-1;
+            updateTmpSelectionBuffer(false);
+	    latestSelectedText = tmpSelectedText;
+	} else {
+	    beginUpdate();
+	    removeSelection();
+	    endUpdate();
+	}
 
 	var buff = new StringBuf();
 	buff.add("<pre>");
