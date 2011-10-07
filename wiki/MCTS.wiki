@@ -1,0 +1,61 @@
+#summary One-sentence summary of this page.
+
+= Introduction =
+
+Add your content here.
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
+#summary A TELNET TCP server to test clients.
+
+= The MUD Client Test Server. =
+
+MCTS is a TCP server, written in C, that can be used to develop/test telnet/mud clients. It is quite simple, but it has enough commands to test most features of a client with ease.
+
+Compile the code with "make" and then run the "mcts" binary. It takes
+an optional argument, the port it should bind to, the default is 5445.
+
+Connect to the port with a telnet/mud client. Send "help" to get
+a list of understood commands.
+
+= Features =
+
+These RFCs are implemented:
+ *   854 - Telnet Protocol Specification.
+ *   855 - Telnet Option Specification.
+ *   857 - Telnet Echo Option
+ *   858 - Telnet Suppress Go Ahead Option
+ *   860 - Telnet Timing Mark Option (not correctly implemented).
+ *   885 - Telnet End Of Record Option
+ *   1073 - Telnet window size option.
+ *   1143 - The Q Method of Implemeneting TELNET Option
+ *   1413 - Identification Protocol (half of it anyway).
+ * There is some support for the CHARSET option (RFC 2066), but it is not correct.
+ *  MCCPv2 - Mud Client Compression Protocol (depends on zlib).
+
+= Commands =
+ * cat [<maxsize>] - sends the test.txt file (up to byte <maxsize>)
+ * colourshow - show the 16 ansi colours.
+ * colourshow256 - show the 256 xterm colours.
+ * eall <text> - sends text to all connected clients (without a prompt afterwards).
+ * echo - turn server echo of input on/off.
+ * ident - try to look up the user id via IDENT, RFC1413
+ * promptall <text> - send text to all connected clients without newline.
+ * quit - disconnect
+ * sendasis <string> - send the string back on a new line.
+ * senddata <hex byte>* - send the bytes back.
+ * set <variable> <value> - set a variable.
+ * startmsp - start telnet msp option negotiation.
+ * startmxp - start telnet mxp option negotiation.
+ * stopmccp - finish the zlib stream.
+ * telnet - Displays hex codes for some telnet constants.
+ * testansi - Various ANSI colour tests.
+ * testcc - Various control code sequence tests.
+ * testtext - Various text tests.
+ * tt - Ask the client for the next terminal type.
+ * zmp <cmd> [<args>|\"<arg>\"]* - send a ZMP command.
