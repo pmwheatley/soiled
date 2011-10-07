@@ -39,17 +39,17 @@ These RFCs are implemented:
  *  MCCPv2 - Mud Client Compression Protocol (depends on zlib).
 
 = Commands =
- * cat [<maxsize>] - sends the test.txt file (up to byte <maxsize>)
+ * cat `[<maxsize\]` - sends the test.txt file (up to byte `<maxsize>`)
  * colourshow - show the 16 ansi colours.
  * colourshow256 - show the 256 xterm colours.
- * eall <text> - sends text to all connected clients (without a prompt afterwards).
+ * eall `<text>` - sends text to all connected clients (without a prompt afterwards).
  * echo - turn server echo of input on/off.
  * ident - try to look up the user id via IDENT, RFC1413
- * promptall <text> - send text to all connected clients without newline.
+ * promptall `<text>` - send text to all connected clients without newline.
  * quit - disconnect
- * sendasis <string> - send the string back on a new line.
- * senddata <hex byte>* - send the bytes back.
- * set <variable> <value> - set a variable.
+ * sendasis `<string>` - send the string back on a new line.
+ * senddata `<hex byte>*` - send the bytes back.
+ * set `<variable> <value>` - set a variable.
  * startmsp - start telnet msp option negotiation.
  * startmxp - start telnet mxp option negotiation.
  * stopmccp - finish the zlib stream.
@@ -58,4 +58,4 @@ These RFCs are implemented:
  * testcc - Various control code sequence tests.
  * testtext - Various text tests.
  * tt - Ask the client for the next terminal type.
- * zmp <cmd> [<args>|\"<arg>\"]* - send a ZMP command.
+ * zmp `<cmd> [<args>|"<arg>"]*` - send a ZMP command.
