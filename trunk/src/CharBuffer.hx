@@ -28,7 +28,7 @@ import flash.media.Sound;
 import flash.net.URLRequest;
 import flash.text.TextField;
 import flash.text.TextFormat;
-import flash.utils.Dictionary;
+import flash.utils.TypedDictionary;
 
 /*
    A Bitmap that displays fixed width characters and a cursor.
@@ -58,7 +58,7 @@ class CharBuffer extends Bitmap {
 
     /* A dictionary mapping Unicode number to a bitmap describing its glyph.
        It is generated as needed */
-    private var unicodeDict : Array<Dictionary>; // Unicode -> BitmapData
+    private var unicodeDict : Array<TypedDictionary<Int,BitmapData>>; // Unicode -> BitmapData
 
     /* Arrays describing what character, and their attributes, that
        should be drawn in each visible position.
@@ -1273,7 +1273,7 @@ class CharBuffer extends Bitmap {
 
 	unicodeDict = new Array();
 	for(i in 0 ... nrOfFonts) {
-	    unicodeDict.push(new Dictionary(false));
+	    unicodeDict.push(new TypedDictionary<Int,BitmapData>(false));
 	}
 
 	fontCopyRect = new Rectangle(0, 0, fontWidth, fontHeight);
@@ -1306,7 +1306,7 @@ class CharBuffer extends Bitmap {
 	matrix.tx = -2;
 	newBitmap.draw(t, matrix);
 
-	unicodeDict[typeOfFont][b] = newBitmap;
+	unicodeDict[typeOfFont].set(b, newBitmap);
 	return newBitmap;
     }
 
@@ -1472,7 +1472,7 @@ class CharBuffer extends Bitmap {
 	var bitmap : BitmapData;
 	if(b <= 32) b = 32;
 	else if(b >= 128 && b <= 160) b = 32;
-	bitmap = unicodeDict[fStyle][b];
+	bitmap = unicodeDict[fStyle].get(b);
 	if(bitmap == null) {
 	    bitmap = addFontToDictionary(b, fStyle);
 	}
