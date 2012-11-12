@@ -32,6 +32,8 @@
  *
  *  MCCPv2 - Mud Client Compression Protocol.
  *
+ * There is a teststring for vt_tileset patch for NetHack.
+ *
  * Compile with:
  *   gcc -g -Wall -DHAVE_ZLIB -lz mcts.c -o mcts
  *
@@ -43,6 +45,7 @@
  *  v0.35 (unreleased).
  *  Fixed some bugs with the CHARSET implementation. Added so it can ACCEPT a charset as well.
  *  Added test_cc 10, to test Reverse Index. Probably not used much by muds.
+ *  Added XXX, to test NetHack's vt_tileset patch's tile output.
  *
  *  v0.34 (2009-01-03):
  *    Added "eall" and "promptall" commands, to test prompt handling in clients.
@@ -2652,6 +2655,26 @@ test_cc(int fd, const char *args)
 		    "The screen should show 1..6 from the upper left corner and down.\r\n"
 		    "The last line should have a text about it. This is the only X.\r\n");
 	    break;
+	case 11:
+	    simple_write(fd,
+		"This should show a single tile:\r\n"
+		"\e[2;3z" // Output to window 3 == MAP.
+		);
+		int i;
+		for(i = 0; i < 80; i++) {
+			char buff[80];
+			snprintf(buff, 79,
+					"\e[0;%uz" // Start of glyph 1
+					"X" // This should not be shown.
+					"\e[1z" // End of glyph
+					, i);
+			simple_write(fd, buff);
+		}
+	    simple_write(fd,
+		"\e[3z" // End of data.
+		"\r\nThis is the only X.\r\n"
+		    );
+	    break;
 
         default:
             simple_write(fd,
@@ -2666,6 +2689,7 @@ test_cc(int fd, const char *args)
       "testcc 8  - scroll region tests.\r\n"
       "testcc 9  - reset the terminal.\r\n"
       "testcc 10 - test Reverse Index.\r\n"
+      "testcc 11 - NetHack's vt_tileset patch's output.\r\n"
             );
     }
 #if 0
