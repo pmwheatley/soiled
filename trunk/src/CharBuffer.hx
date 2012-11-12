@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2009 Sebastian Andersson
+   Copyright 2007-2012 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 
 import flash.display.Bitmap;
 import flash.display.BitmapData;
+import flash.display.Loader;
+import flash.events.Event;
 import flash.filters.ColorMatrixFilter;
 import flash.geom.ColorTransform;
 import flash.geom.Matrix;
@@ -41,6 +43,8 @@ class CharBuffer extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
 
+    private static inline var EMPTY_SPACE = -65535;
+
     private var config : Config;
 
     /* The sound used for sound alerts */
@@ -49,6 +53,12 @@ class CharBuffer extends Bitmap {
     /* The size of the font in whole pixels: */
     private var fontHeight : Int;
     private var fontWidth : Int;
+
+    /* The size of tiles in whole pixels: */
+    private var tileHeight : Int;
+    private var tileWidth : Int;
+
+    private var tilesetBitmap : BitmapData;
 
     private var currentFontSize : Int;
     private var currentFontName : String;
@@ -160,10 +170,20 @@ class CharBuffer extends Bitmap {
     /** Callback to be called when the font is changed **/
     private var onNewFont : Void -> Void;
 
+    private var imgLoader:Loader;
+
     public function new(onNewFont : Void -> Void, config : Config)
     {
 	try {
 	    super();
+
+	    // This should be configurable and downloaded from the server...
+	    var bytes = haxe.Resource.getBytes("tileset");
+	    var byteArr = bytes.getData();
+	    imgLoader = new Loader();
+	    var li = imgLoader.contentLoaderInfo;
+	    li.addEventListener(Event.INIT, loadComplete);
+	    imgLoader.loadBytes(byteArr);
 
 	    this.config = config;
 
@@ -365,6 +385,28 @@ class CharBuffer extends Bitmap {
 		carriageReturn();
 		lineFeed();
 	    }
+	}
+    }
+
+    /* Prints a tile t on the screen and moves the cursor. */
+    public function printTile(t : Int)
+    {
+	beginUpdate();
+	if(cursX >= columns) {
+	    if(autoWrapMode) {
+		cursX = 0;
+		lineFeed_();
+	    } else {
+		cursX = columns - 1;
+	    }
+	}
+	t = -t - 1;
+	var x = cursX++;
+	var pos = x + cursY*columns;
+	if((charBuffer[pos] != t) ||
+	   (!currentAttributes.equal(attrBuffer[pos]))) {
+	    charBuffer[pos] = t;
+	    attrBuffer[pos] = currentAttributes.clone();
 	}
     }
 
@@ -1029,7 +1071,7 @@ class CharBuffer extends Bitmap {
 	    cursX = columns - 1;
 	    --cursY;
 	}
-	this.printChar_(-1);
+	this.printChar_(EMPTY_SPACE);
 	if(--cursX < 0) {
 	    if(cursY == 0) {
 		cursX = 0;
@@ -1101,6 +1143,11 @@ class CharBuffer extends Bitmap {
      /***********************************/
     /* Private functions go below here */
    /***********************************/
+
+   private function loadComplete(e : Event) {
+       var bitmap = cast(imgLoader.content, Bitmap);
+       tilesetBitmap = bitmap.bitmapData;
+   }
 
     /* Redraws all characters of the character buffer that are
        on screen */
@@ -1241,6 +1288,10 @@ class CharBuffer extends Bitmap {
 
     private function initFont(fontName, fontSize : Int)
     {
+	// TODO: Should be configurable (and handled in a different function):
+	tileWidth = 10;
+	tileHeight = 20;
+
 	var format = new TextFormat();
 	format.size = fontSize;
 	format.font = fontName;
@@ -1264,6 +1315,13 @@ class CharBuffer extends Bitmap {
 	    fontWidth = oldFontWidth;
 	    fontHeight = oldFontHeight;
 	    return;
+	}
+	// The font size can't be less than the tile size:
+	if(fontWidth < tileWidth) {
+	    fontWidth = tileWidth;
+	}
+	if(fontHeight < tileHeight) {
+	    fontHeight = tileHeight;
 	}
 
 	currentFontName = fontName;
@@ -1435,13 +1493,31 @@ class CharBuffer extends Bitmap {
 	    currentAttributes.setInverted();
     }
 
+    private function drawTileAt_(t : Int, x : Int, y : Int)
+    {
+
+	// TODO: Should be configurable:
+	var bitmap = tilesetBitmap;
+
+	var tilesPerRow = Math.floor(tilesetBitmap.width / tileWidth);
+
+	var tileY = Math.floor(t / tilesPerRow) * tileHeight;
+	var tileX = (t % tilesPerRow) * tileWidth;
+
+	fontCopyRect = new Rectangle(tileX, tileY, tileWidth, tileHeight);
+
+	var position = new Point(x * fontWidth, y * fontHeight);
+
+	this.bitmapData.copyPixels(bitmap, fontCopyRect, position);
+    }
+
     private function drawCharAndAttrAt(b : Int,
 	                               currentAttributes : CharAttributes,
 				       x : Int, y : Int)
     { 
 	currentAttributes = currentAttributes.clone();
 	var fStyle = 0;
-	if(b != -1) {
+	if(b != EMPTY_SPACE) {
 	    if(currentAttributes.isItalic()) fStyle |= 1;
 	    if(currentAttributes.isUnderline()) fStyle |= 2;
 	    if(currentAttributes.isBold()) fStyle |= 4;
@@ -1469,10 +1545,14 @@ class CharBuffer extends Bitmap {
 	    }
 	}
 
-	var bitmap : BitmapData;
-	if(b <= 32) b = 32;
+	if(0 <= b && b <= 32) b = 32;
 	else if(b >= 128 && b <= 160) b = 32;
-	bitmap = unicodeDict[fStyle].get(b);
+	if(b < 0) {
+	    b = -b - 1;
+	    drawTileAt_(b, x, y);
+	    return;
+	}
+	var bitmap = unicodeDict[fStyle].get(b);
 	if(bitmap == null) {
 	    bitmap = addFontToDictionary(b, fStyle);
 	}

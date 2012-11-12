@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2010 Sebastian Andersson
+   Copyright 2007-2012 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -47,6 +47,18 @@ class VT100 implements ITelnetEventListener,
     private var sendByte : Int -> Void;
 
     private var localEcho : Bool;
+
+    /* If != 0, in tiledata output mode:
+     * 1: MESSAGE
+     * 2: STATUS
+     * 3: MAP
+     * 4: MENU
+     * 5: TEXT
+     */
+    private var tiledataWindow : Int;
+
+    /* If in tiledata mode don't output anything else. */
+    private var tiledataMode : Bool;
 
     /* If the received charset is UTF-8 */
     private var utfEnabled : Bool;
@@ -893,6 +905,28 @@ class VT100 implements ITelnetEventListener,
 	}
     }
 
+    private function handle_vt_tiledata(params : Array<Int>)
+    {
+	var subcmd = params[0];
+	switch(subcmd) {
+	    case 2: // win#; Select a window to output to.
+		tiledataWindow = params[0];
+	    case 0: // tile; Start a glyph
+	    	// if(tiledataWindow == 3) // MAP.
+		{
+		    tiledataMode = true;
+		    cb.printTile(params[1]);
+		    // output tile.
+		}
+	    case 1: // End a glyph
+		tiledataMode = false;
+	    case 3: // End of data.
+		tiledataWindow = 0;
+	    default:
+		trace("Unknown vt-tiledata sequence: params=" + params);
+	}
+    }
+
     private function send_DA()
     {
 	sendByte(27); // ESC
@@ -1050,6 +1084,8 @@ class VT100 implements ITelnetEventListener,
 		handle_SGR(nParams, params);
 	    case 114: // r
 		handle_DECSTBM(params);
+	    case 122: // z
+		handle_vt_tiledata(params);
 	    default:
 		trace("Unknown ESC-seq:" + intermediateChars + " " + cmd + " nParams=" + nParams + " params=" + params);
 	}
@@ -1182,6 +1218,7 @@ class VT100 implements ITelnetEventListener,
     
     public function vtpPrint(b : Int)
     {
+    	if(tiledataMode) return; // No output in tile data mode.
 	maybeRemovePrompt();
 	b = translateCharset(b);
 	newPromptString.addChar(b);
