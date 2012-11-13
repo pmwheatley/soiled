@@ -37,6 +37,7 @@ class CharAttributes {
     private static inline var ATT_ITALIC = 1 << 21;
     private static inline var ATT_BOLD = 1 << 22;
 
+    private static inline var ATT_TILE = 1 << 29;
     /* If this attribute is set, the character needs to redrawn */
     private static inline var ATT_UPDATED = 1 << 30;
 
@@ -114,7 +115,6 @@ class CharAttributes {
     {
 	return (attribs & ~ATT_UPDATED) == (other.attribs & ~ATT_UPDATED);
     }
-
 
     public inline function isBold()
     {
@@ -218,23 +218,44 @@ class CharAttributes {
 	attribs &= ~ATT_UNDERLINE;
     }
 
-    /* Turns on the underline attribute */
+    /* Is this a tile? */
+    public inline function isTile()
+    {
+	return (attribs & ATT_TILE) != 0;
+    }
+
+    /* Turns on the tile attribute */
+    public inline function setIsTile()
+    {
+	attribs |= ATT_TILE;
+	return this;
+    }
+
+    /* Turns off the tile attribute */
+    public inline function resetIsTile()
+    {
+	attribs &= ~ATT_TILE;
+	return this;
+    }
+
+    /* Is this glyph/tile updated? */
     public inline function isUpdated()
     {
 	return (attribs & ATT_UPDATED) != 0;
     }
 
-
-    /* Turns on the underline attribute */
+    /* Turns on the updated attribute */
     public inline function setUpdated()
     {
 	attribs |= ATT_UPDATED;
+	return this;
     }
 
-    /* Turns off the underline attribute */
+    /* Turns off the updated attribute */
     public inline function resetUpdated()
     {
 	attribs &= ~ATT_UPDATED;
+	return this;
     }
 
     /* Sets the background colour to c (0..255) */

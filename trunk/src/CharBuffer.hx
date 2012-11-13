@@ -400,13 +400,12 @@ class CharBuffer extends Bitmap {
 		cursX = columns - 1;
 	    }
 	}
-	t = -t - 1;
 	var x = cursX++;
-	var pos = x + cursY*columns;
+	var pos = x + cursY * columns;
 	if((charBuffer[pos] != t) ||
-	   (!currentAttributes.equal(attrBuffer[pos]))) {
+	   (!attrBuffer[pos].isTile())) {
 	    charBuffer[pos] = t;
-	    attrBuffer[pos] = currentAttributes.clone();
+	    attrBuffer[pos].setIsTile().setUpdated();
 	}
     }
 
@@ -1286,12 +1285,16 @@ class CharBuffer extends Bitmap {
 	if(currHeight > fontHeight) fontHeight = currHeight;
     }
 
-    private function initFont(fontName, fontSize : Int)
+    private function initTiles()
     {
 	// TODO: Should be configurable (and handled in a different function):
 	tileWidth = 10;
 	tileHeight = 20;
+    }
 
+    private function initFont(fontName, fontSize : Int)
+    {
+	initTiles();
 	var format = new TextFormat();
 	format.size = fontSize;
 	format.font = fontName;
@@ -1493,11 +1496,16 @@ class CharBuffer extends Bitmap {
 	    currentAttributes.setInverted();
     }
 
+    private inline function getTilesetBitmap() : BitmapData
+    {
+	// TODO: Should be configurable:
+	return tilesetBitmap;
+    }
+
     private function drawTileAt_(t : Int, x : Int, y : Int)
     {
 
-	// TODO: Should be configurable:
-	var bitmap = tilesetBitmap;
+	var bitmap = getTilesetBitmap();
 
 	var tilesPerRow = Math.floor(tilesetBitmap.width / tileWidth);
 
@@ -1515,6 +1523,10 @@ class CharBuffer extends Bitmap {
 	                               currentAttributes : CharAttributes,
 				       x : Int, y : Int)
     { 
+	if(currentAttributes.isTile()) {
+	    drawTileAt_(b, x, y);
+	    return;
+	}
 	currentAttributes = currentAttributes.clone();
 	var fStyle = 0;
 	if(b != EMPTY_SPACE) {
@@ -1547,11 +1559,6 @@ class CharBuffer extends Bitmap {
 
 	if(0 <= b && b <= 32) b = 32;
 	else if(b >= 128 && b <= 160) b = 32;
-	if(b < 0) {
-	    b = -b - 1;
-	    drawTileAt_(b, x, y);
-	    return;
-	}
 	var bitmap = unicodeDict[fStyle].get(b);
 	if(bitmap == null) {
 	    bitmap = addFontToDictionary(b, fStyle);
