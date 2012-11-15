@@ -912,11 +912,10 @@ class VT100 implements ITelnetEventListener,
 	    case 2: // win#; Select a window to output to.
 		tiledataWindow = params[0];
 	    case 0: // tile; Start a glyph
+	        if(cb.isTilesAvailable()) {
 	    	// if(tiledataWindow == 3) // MAP.
-		{
 		    tiledataMode = true;
 		    cb.printTile(params[1]);
-		    // output tile.
 		}
 	    case 1: // End a glyph
 		tiledataMode = false;

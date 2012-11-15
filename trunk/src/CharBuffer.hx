@@ -50,13 +50,16 @@ class CharBuffer extends Bitmap {
     /* The sound used for sound alerts */
     private var beepSound : Sound;
 
-    /* The size of the font in whole pixels: */
-    private var fontHeight : Int;
-    private var fontWidth : Int;
+    private var blockWidth : Int;
+    private var blockHeight : Int;
 
     /* The size of tiles in whole pixels: */
-    private var tileHeight : Int;
-    private var tileWidth : Int;
+    private var tileHeight : Int = 0;
+    private var tileWidth : Int = 0;
+
+    /* The used size of the font in whole pixels: */
+    private var fontHeight : Int;
+    private var fontWidth : Int;
 
     private var tilesetBitmap : BitmapData;
 
@@ -168,11 +171,11 @@ class CharBuffer extends Bitmap {
     private var debug : Bool;
 
     /** Callback to be called when the font is changed **/
-    private var onNewFont : Void -> Void;
+    private var onNewSize : Void -> Void;
 
     private var imgLoader:Loader;
 
-    public function new(onNewFont : Void -> Void, config : Config)
+    public function new(onNewSize : Void -> Void, config : Config)
     {
 	try {
 	    super();
@@ -214,8 +217,8 @@ class CharBuffer extends Bitmap {
 		flash.Lib.current.stage.stageWidth,
 		flash.Lib.current.stage.stageHeight);
 
-	    columns = Math.floor(this.width / fontWidth);
-	    rows = Math.floor(this.height / fontHeight);
+	    columns = Math.floor(this.width / blockWidth);
+	    rows = Math.floor(this.height / blockHeight);
 
 	    charBuffer = new Array<Int>();
 	    attrBuffer = new Array<CharAttributes>();
@@ -224,12 +227,17 @@ class CharBuffer extends Bitmap {
 
 	    initFont(config.getFontName(), config.getFontSize());
 
-	    this.onNewFont = onNewFont;
+	    this.onNewSize = onNewSize;
 
 	    reset();
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}
+    }
+
+    public function isTilesAvailable()
+    {
+        return tilesetBitmap != null;
     }
 
     /** Alert the user **/
@@ -487,8 +495,8 @@ class CharBuffer extends Bitmap {
     {
 	var w = Math.floor(this.width);
 	var h = Math.floor(this.height);
-	var newColumns = Math.floor(this.width / fontWidth);
-	var newRows = Math.floor(this.height / fontHeight);
+	var newColumns = Math.floor(this.width / blockWidth);
+	var newRows = Math.floor(this.height / blockHeight);
 
 	if(!mustRedraw &&
            newColumns == columns &&
@@ -553,7 +561,7 @@ class CharBuffer extends Bitmap {
 	beginUpdate();
 	removeSelection();
 	endUpdate();
-	scrollbackToBottom(); // XXX Until it works better...
+	scrollbackToBottom();
 
 	startOfSelectionX = x;
 	startOfSelectionY = y;
@@ -617,11 +625,11 @@ class CharBuffer extends Bitmap {
 
     private function updateSelect_()
     {
-	startOfSelectionColumn = Math.floor(startOfSelectionX / fontWidth);
-	startOfSelectionRow = Math.floor(startOfSelectionY / fontHeight);
+	startOfSelectionColumn = Math.floor(startOfSelectionX / blockWidth);
+	startOfSelectionRow = Math.floor(startOfSelectionY / blockHeight);
 
-	endOfSelectionColumn = Math.floor(endOfSelectionX / fontWidth);
-	endOfSelectionRow = Math.floor(endOfSelectionY / fontHeight);
+	endOfSelectionColumn = Math.floor(endOfSelectionX / blockWidth);
+	endOfSelectionRow = Math.floor(endOfSelectionY / blockHeight);
 
 	updateSelect2();
     }
@@ -705,7 +713,7 @@ class CharBuffer extends Bitmap {
     {
 	beginUpdate();
 	removeSelection();
-	scrollbackToBottom(); // XXX Until it works better...
+	scrollbackToBottom();
 
 	startOfSelectionX = x;
 	startOfSelectionY = y;
@@ -735,10 +743,10 @@ class CharBuffer extends Bitmap {
 	startOfSelectionRow = Math.floor(startPos / columns);
 	endOfSelectionColumn = endPos % columns;
 	endOfSelectionRow = Math.floor(endPos / columns);
-	startOfSelectionX = startOfSelectionColumn * fontWidth;
-	startOfSelectionY = startOfSelectionRow * fontHeight;
-	endOfSelectionX = endOfSelectionColumn * fontWidth;
-	endOfSelectionY = endOfSelectionRow * fontHeight;
+	startOfSelectionX = startOfSelectionColumn * blockWidth;
+	startOfSelectionY = startOfSelectionRow * blockHeight;
+	endOfSelectionX = endOfSelectionColumn * blockWidth;
+	endOfSelectionY = endOfSelectionRow * blockHeight;
 
 	updateTmpSelectionBuffer(true);
 
@@ -749,7 +757,7 @@ class CharBuffer extends Bitmap {
        Typicly used when ctrl-clicking to go to an URL */
     public function getWordAt(x : Int, y : Int) : String
     {
-	scrollbackToBottom(); // XXX Until it works better...
+	scrollbackToBottom();
 
 	var startPos = x + y * columns;
 
@@ -884,7 +892,7 @@ class CharBuffer extends Bitmap {
 	if(displayOffset == scrollbackSize) return;
 
 	beginUpdate();
-	removeSelection(); // XXX Until it works better...
+	removeSelection();
 
 	displayOffset += rows>>1;
 	if(displayOffset > scrollbackSize)
@@ -901,7 +909,7 @@ class CharBuffer extends Bitmap {
 	if(displayOffset == 0) return;
 
 	beginUpdate();
-	removeSelection(); // XXX Until it works better...
+	removeSelection();
 
 	displayOffset -= rows>>1;
 	if(displayOffset <= 0)
@@ -1027,13 +1035,13 @@ class CharBuffer extends Bitmap {
     /* Translates a local (pixel) X position into a character column */
     public function getColumnFromLocalX(localX : Int) : Int
     {
-	return Math.floor(localX / fontWidth);
+	return Math.floor(localX / blockWidth);
     }
 
     /* Translates a local (pixel) Y position into a character row */
     public function getRowFromLocalY(localY : Int) : Int
     {
-	return Math.floor(localY / fontHeight);
+	return Math.floor(localY / blockHeight);
     }
 
     /* Make the characters scroll up one row */
@@ -1136,7 +1144,14 @@ class CharBuffer extends Bitmap {
     {
 	initFont(fontName, size);
 	resize(true);
-	if(onNewFont != null) onNewFont();
+	if(onNewSize != null) onNewSize();
+    }
+
+    public function changeTileset(bitmap : BitmapData, width : Int, height : Int)
+    {
+	initTileset(bitmap, width, height);
+	resize(true);
+	if(onNewSize != null) onNewSize();
     }
 
      /***********************************/
@@ -1145,7 +1160,8 @@ class CharBuffer extends Bitmap {
 
    private function loadComplete(e : Event) {
        var bitmap = cast(imgLoader.content, Bitmap);
-       tilesetBitmap = bitmap.bitmapData;
+       // XXX
+       changeTileset(bitmap.bitmapData, 9, 17);
    }
 
     /* Redraws all characters of the character buffer that are
@@ -1196,13 +1212,6 @@ class CharBuffer extends Bitmap {
     {
 	if(startOfSelectionX < 0) return;
 
-	/*
-	var startX = Math.floor(startOfSelectionX / fontWidth);
-	var startY = Math.floor(startOfSelectionY / fontHeight);
-	var endX = Math.floor(endOfSelectionX / fontWidth);
-	var endY = Math.floor(endOfSelectionY / fontHeight);
-	*/
-
 	startOfSelectionX = -1;
 
 	if(startOfSelectionRow > endOfSelectionRow) {
@@ -1235,7 +1244,7 @@ class CharBuffer extends Bitmap {
     private function drawCursor_(toBeCleared : Bool) {
 	var y = cursY + displayOffset;
 	if(y >= rows) return;
-	var position = new Point(cursX * fontWidth, y * fontHeight);
+	var position = new Point(cursX * blockWidth, y * blockHeight);
 	var colorTransform = new ColorTransform(
 		-1,
 		-1,
@@ -1258,11 +1267,11 @@ class CharBuffer extends Bitmap {
 		rec = new Rectangle(position.x, position.y,
 			1, fontHeight);
 	    case "underline":
-		rec = new Rectangle(position.x, position.y+fontHeight-1,
-			fontWidth, 1);
+		rec = new Rectangle(position.x, position.y+blockHeight-1,
+			blockWidth, 1);
 	    default:
 	    rec = new Rectangle(position.x, position.y,
-		    fontWidth, fontHeight);
+		    blockWidth, blockHeight);
 	}
 	this.bitmapData.colorTransform(rec, colorTransform);
     }
@@ -1285,16 +1294,29 @@ class CharBuffer extends Bitmap {
 	if(currHeight > fontHeight) fontHeight = currHeight;
     }
 
-    private function initTiles()
+    private function initTileset(bitmap : BitmapData, width : Int, height : Int)
     {
-	// TODO: Should be configurable (and handled in a different function):
-	tileWidth = 10;
-	tileHeight = 20;
+    	tilesetBitmap = bitmap;
+	tileWidth = width;
+	tileHeight = height;
+	updateBlockRect();
+    }
+    
+    private function updateBlockRect()
+    {
+        blockWidth = fontWidth;
+        blockHeight = fontHeight;
+	// The font size can't be less than the tile size:
+	if(blockWidth < tileWidth) {
+	    blockWidth = tileWidth;
+	}
+	if(blockHeight < tileHeight) {
+	    blockHeight = tileHeight;
+	}
     }
 
     private function initFont(fontName, fontSize : Int)
     {
-	initTiles();
 	var format = new TextFormat();
 	format.size = fontSize;
 	format.font = fontName;
@@ -1319,13 +1341,9 @@ class CharBuffer extends Bitmap {
 	    fontHeight = oldFontHeight;
 	    return;
 	}
-	// The font size can't be less than the tile size:
-	if(fontWidth < tileWidth) {
-	    fontWidth = tileWidth;
-	}
-	if(fontHeight < tileHeight) {
-	    fontHeight = tileHeight;
-	}
+
+	fontCopyRect = new Rectangle(0, 0, fontWidth, fontHeight);
+	updateBlockRect();
 
 	currentFontName = fontName;
 	currentFontSize = fontSize;
@@ -1336,8 +1354,6 @@ class CharBuffer extends Bitmap {
 	for(i in 0 ... nrOfFonts) {
 	    unicodeDict.push(new TypedDictionary<Int,BitmapData>(false));
 	}
-
-	fontCopyRect = new Rectangle(0, 0, fontWidth, fontHeight);
     }
 
     private function addFontToDictionary(b : Int, typeOfFont : Int) : BitmapData
@@ -1512,11 +1528,19 @@ class CharBuffer extends Bitmap {
 	var tileY = Math.floor(t / tilesPerRow) * tileHeight;
 	var tileX = (t % tilesPerRow) * tileWidth;
 
-	fontCopyRect = new Rectangle(tileX, tileY, tileWidth, tileHeight);
+	var tileCopyRect = new Rectangle(tileX, tileY, tileWidth, tileHeight);
 
-	var position = new Point(x * fontWidth, y * fontHeight);
+	var position = new Point(x * blockWidth, y * blockHeight);
 
-	this.bitmapData.copyPixels(bitmap, fontCopyRect, position);
+	this.bitmapData.copyPixels(bitmap, tileCopyRect, position);
+	if(blockWidth > tileWidth) {
+	    // XXX fill area between tileWidth and fontWidth
+	    // What colour?
+	}
+	if(blockHeight > tileHeight) {
+	    // XXX fill area between tileHeight and fontHeight
+	    // What colour?
+	}
     }
 
     private function drawCharAndAttrAt(b : Int,
@@ -1563,10 +1587,8 @@ class CharBuffer extends Bitmap {
 	if(bitmap == null) {
 	    bitmap = addFontToDictionary(b, fStyle);
 	}
-	fontCopyRect.x = 0;
-	fontCopyRect.y = 0;
 
-	var position = new Point(x * fontWidth, y * fontHeight);
+	var position = new Point(x * blockWidth, y * blockHeight);
 
 	var lFg = currentAttributes.getFgColour();
 	var lBg = currentAttributes.getBgColour();
@@ -1582,7 +1604,15 @@ class CharBuffer extends Bitmap {
 	var colorTransform = new ColorTransform(
 		(fgR-bgR)/255, (fgG-bgG)/255, (fgB-bgB)/255, 1,
 		bgR, bgG, bgB, 0);
-	this.bitmapData.colorTransform(new Rectangle(position.x, position.y, fontWidth, fontHeight), colorTransform);
+	this.bitmapData.colorTransform(new Rectangle(position.x, position.y, blockWidth, blockHeight), colorTransform);
+	if(blockWidth > fontWidth) {
+	    // XXX fill area between tileWidth and fontWidth
+	    // What colour?
+	}
+	if(blockHeight > fontHeight) {
+	    // XXX fill area between tileHeight and fontHeight
+	    // What colour?
+	}
     }
 
     private function lineFeed_()
