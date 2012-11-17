@@ -1,5 +1,4 @@
 #summary Release Note for version 0.45
-#labels Featured
 
 = Introduction =
 
