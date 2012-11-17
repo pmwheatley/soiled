@@ -1,0 +1,12 @@
+The MUD Client Test Server.
+
+MCTS is a TCP server that can be used to develop/test telnet/mud clients.
+It is quite simple, but it has enough commands to test most features of
+a client with ease.
+
+
+Compile the code with "make" and then run the "mcts" binary. It takes
+an optional argument, the port it should bind to, the default is 5445.
+
+Connect to the port with a telnet/mud client. Send "help" to get
+a list of understood commands.

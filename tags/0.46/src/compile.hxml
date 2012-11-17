@@ -1,0 +1,6 @@
+-swf soiled.swf
+-swf-version 9
+-swf-header 800:400:25:040303
+--flash-use-stage
+-main Client
+-xml soiled.swf.xml

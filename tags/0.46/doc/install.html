@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/1999/REC-html401-19991224/strict.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <style type="text/css">
+        html {background: #000000; color: #BBAA44 }
+    </style>
+    <title>How to install Soiled - the flash mud client.</title>
+</head>
+<body>
+
+<h1> How to install Soiled - the flash mud client. </h1>
+
+<h2>Flash security</h2>
+
+<p>
+Adobe Flash Player 9 and later is quite picky about where it allows a program/"movie"
+to connect to via sockets.<br></br>
+Some versions of the player only allowed connections to ports above 1023
+and only to the same server as it was downloaded from.<br></br>
+Later versions of the flash player need to have downloaded a policy
+file from the server it wants to connect to. That policy file should
+say which ports the client is allowed to connect to and from where
+the client must have been downloaded for it to be allowed to connect.<br>
+The program must also be loaded from a webserver, otherwise it is not
+allowed to use the network.
+</p>
+
+<p>
+The policy file should list every server that the client can be
+downloaded from and wildcards (*) can be used instead of exakt names.
+That is, use "*.example.com" to allow the client to be downloaded from
+both "one.example.com" and "two.example.com".
+</p>
+
+<p>
+See Adobe's site for more info <a href="http://www.adobe.com/go/fp9_0_security">Flash Player 9 Security</a>.<br></br>
+</p>
+
+<h2> Installation </h2>
+<p>
+To install Soiled, copy the soiled.swf, beep.mp3, soiled.html and AC_OETags.js
+files to your web-server, then change the "server" &amp; "port" variables
+in the beginning of the soiled.html file to your server's name and
+the mud server's port number.
+</p>
+<p>
+If the server you connect to is run in char-by-char mode, change
+the localEdit setting to "off" in the html file (or remove it).
+</p>
+<p>
+With the distribution there is also a template policy file;
+<a href="../misc/flashpolicy.xml">misc/flashpolicy.xml</a>.<br>
+Edit it to list the domains where the client might be downloaded from
+and the mud-server port(s) there the client(s) should connect.<br></br>
+
+When a TCP connection is done to port 843 on the mud-server, that file
+should be sent without any extra headers. If the server uses inetd,
+this line might work:<br></br>
+
+<code>843  stream  tcp     nowait  USERIDHERE    /bin/cat /bin/cat /ABSOLUTE/PATH/TO/flashpolicy.xml</code>
+<br></br>
+
+For OS X, there is a
+<a href="../misc/soiled.plist">misc/soiled.plist</a>
+file for launchd to use to serve the file (its path to the policy file
+needs to be edited before use).<br>
+<code>sudo launchctl load soiled.plist</code> should add it, I think...<br></br>
+More information about launchd can be read <a href="http://developer.apple.com/macosx/launchd.html">here</a>.
+</p>
+
+
+<h2> Trouble shooting </h2>
+
+<p>
+First of all, does the client connect at all? If it says "Got IO Error:
+Error #2031", then it has not been able to connect to the server.<br>
+Maybe the server's name or port-number is wrong?<br>
+The server name should be written in full, that is "server.example.com",
+not just "server" in the html file.
+</p>
+
+<p>
+If it says "Got a security error!", the client is not allowed to connect to the server for some reason. The policy file might be incorrect. <br></br>
+Try to connect to port 843 on the server (with a mud client, telnet or
+whatever) and see that the policy file is correctly servered and that
+the correct domain (the one the client is downloaded from) and correct
+port (the one the mud-server listens to) are given.
+</p>
+
+<p>
+If the flashVars parameter string contains "debug=on", the client will run in debug mode. It is mostly the same, but some trace messages are written over the window's content. It will also switch the background to some dark gray to make some graphics operations easier to debug.
+</p>
+
+
+<h2> Customisation and debugging </h2>
+
+<p>
+Of course, the html files can be improved a lot. Giving them the same
+design as the rest of your html pages might be a good start.
+</p>
+
+<p>
+If the mud server sends a control sequence to change the client's window title, the client will call the "ChangeTitle" javascript function in the html file, so that function might be nice to change if you want to control that.
+</p>
+
+<p>
+If a BELL is received by the client, it will play "beep.mp3". There are probably better sounds than the included file...
+</p>
+
+<p>
+The tilesets.txt file is used to supply a list of tileset image files and the tile's sizes to the client. The first tileset is used by default.
+</p>
+
+</body>
+</html>
