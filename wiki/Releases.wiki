@@ -6,6 +6,7 @@ The latest releases should have a release note page linked from this page.
 
 = Details =
 
+  * [ReleaseNoteForVersion_0_46 Release note for version 0.46] - 2012-11-17
   * [ReleaseNoteForVersion_0_45 Release note for version 0.45] - 2009-12-04
   * [ReleaseNoteForVersion_0_44 Release note for version 0.44] - 2009-10-13
   * [ReleaseNoteForVersion_0_43 Release note for version 0.43]
