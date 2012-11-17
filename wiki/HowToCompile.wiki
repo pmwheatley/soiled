@@ -21,8 +21,7 @@ To make a new version:
   * Export the tag to a new directory called SOILED-VERSION.
   * Build with make (or copy CompileTimeTemplate.hx to CompileTime.hx, update its time manually before compiling with haxe).
   * Copy the soiled.swf file to the html directory
-  * zip doc, html, misc, LICENSE to a file called soiled-VERSION.zip:
-    zip -r soiled-VERSION.zip soiled-VERSION/{doc,html,misc,LICENSE}
+  * zip doc, html, misc, LICENSE to a file called soiled-VERSION.zip with: zip -r soiled-VERSION.zip soiled-VERSION/{doc,html,misc,LICENSE}
   * Upload soiled-VERSION.zip to google code.
   * Write a new release note in the wiki.
   * Update Releases to point to the new release note.
