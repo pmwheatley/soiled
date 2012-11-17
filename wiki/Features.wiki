@@ -4,7 +4,7 @@
 = Introduction =
 
 Soiled is a mud client, but it is also a good enough terminal emulator and telnet implementation for it to connect to most telnet servers.
-Some of the features described here might only be available in the trunk version, not in the latest released version.
+Some of the features described here might only be available when building the source, not in the latest released, binary version.
 
 = Details =
 
@@ -23,3 +23,4 @@ Some of the features described here might only be available in the trunk version
   * Command/ctrl clicking an URL will open it in the browser.
   * TAB expansion of previously entered commands/words.
   * Limited support for auto-login, it just sends a string at connection time.
+  * Supports the "vt_tiledata" option for NetHack (and clones) to show graphical tiles.
