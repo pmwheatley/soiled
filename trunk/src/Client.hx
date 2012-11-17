@@ -17,6 +17,8 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
+import flash.display.Loader;
+import flash.display.Bitmap;
 import flash.events.ContextMenuEvent;
 import flash.events.Event;
 import flash.events.IOErrorEvent;
@@ -46,9 +48,6 @@ class Client {
     static var mouseDown : Bool;
     static var lastX : Int;
     static var lastY : Int;
-
-    private static var loader : URLLoader;
-
 
     /* Convert an integer to its character value (as a string) */
     private static function asc(b : Int) {
@@ -276,10 +275,15 @@ class Client {
 	    charBuffer.appendText("Soiled, version pre-0.46 (" + CompileTime.time + ")\n" +
 		    "  (C)2007-2012 Sebastian Andersson.");
 
-	    loader = new URLLoader();
+	    var loader = new URLLoader();
 	    loader.addEventListener(Event.COMPLETE, onMotdLoaded);
 	    loader.addEventListener(IOErrorEvent.IO_ERROR, onMotdError);
 	    loader.load(new URLRequest("soiled.txt"));
+
+	    loader = new URLLoader();
+	    loader.addEventListener(Event.COMPLETE, onTileDescriptionLoaded);
+	    loader.addEventListener(IOErrorEvent.IO_ERROR, onTilesetError);
+	    loader.load(new URLRequest("tilesets.txt"));
 
 	    var contextMenu = new ContextMenu();
 	    contextMenu.hideBuiltInItems();
@@ -340,13 +344,52 @@ class Client {
 
     private static function onMotdLoaded(o : Dynamic)
     {
-	charBuffer.appendText(loader.data);
+	charBuffer.appendText(o.target.data);
+    }
+
+    private static var tileDescriptions : List<String>;
+    private static var currTileWidth : Int;
+    private static var currTileHeight : Int;
+
+    private static function onTileDescriptionLoaded(o : Dynamic)
+    {
+	tileDescriptions = new List<String>();
+	var res : String = o.target.data;
+	for(row in res.split("\n")) {
+	    row = StringTools.trim(row);
+	    if(row.length > 0 && row.charAt(0) != '#') {
+		tileDescriptions.add(row);
+	    }
+	}
+	if(!tileDescriptions.isEmpty()) {
+	    var firstRow = tileDescriptions.first().split(";");
+	    var filename = firstRow[0];
+	    currTileWidth = Std.parseInt(firstRow[1]);
+	    currTileHeight = Std.parseInt(firstRow[2]);
+	    var imgLoader = new Loader();
+	    var li = imgLoader.contentLoaderInfo;
+	    li.addEventListener(Event.INIT, onTileImageComplete);
+	    imgLoader.load(new URLRequest(filename));
+	} else {
+	    trace("No tileset defined");
+	}
+    }
+
+    private static function onTileImageComplete(o : Dynamic)
+    {
+        var bitmap = cast(o.target.loader.content, Bitmap);
+        charBuffer.changeTileset(bitmap.bitmapData, currTileWidth, currTileHeight);
     }
 
     private static function onMotdError(o : Dynamic)
     {
 	trace("Failed to load soiled.txt: " + o);
 	charBuffer.appendText("\n\nClick on this window to connect.\nWrite /help to read the documentation.\n");
+    }
+
+    private static function onTilesetError(o : Dynamic)
+    {
+	trace("Failed to load tilesets.txt or the first tileset:" + o);
     }
 
     // A null-trace method to disable tracing.

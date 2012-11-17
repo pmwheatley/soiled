@@ -19,7 +19,6 @@
 
 import flash.display.Bitmap;
 import flash.display.BitmapData;
-import flash.display.Loader;
 import flash.events.Event;
 import flash.filters.ColorMatrixFilter;
 import flash.geom.ColorTransform;
@@ -31,6 +30,10 @@ import flash.net.URLRequest;
 import flash.text.TextField;
 import flash.text.TextFormat;
 import flash.utils.TypedDictionary;
+
+// TODO:
+// Have inline functions for transforming pixel positions to
+// char positions and vice versa.
 
 /*
    A Bitmap that displays fixed width characters and a cursor.
@@ -173,20 +176,10 @@ class CharBuffer extends Bitmap {
     /** Callback to be called when the font is changed **/
     private var onNewSize : Void -> Void;
 
-    private var imgLoader:Loader;
-
     public function new(onNewSize : Void -> Void, config : Config)
     {
 	try {
 	    super();
-
-	    // This should be configurable and downloaded from the server...
-	    var bytes = haxe.Resource.getBytes("tileset");
-	    var byteArr = bytes.getData();
-	    imgLoader = new Loader();
-	    var li = imgLoader.contentLoaderInfo;
-	    li.addEventListener(Event.INIT, loadComplete);
-	    imgLoader.loadBytes(byteArr);
 
 	    this.config = config;
 
@@ -1158,12 +1151,6 @@ class CharBuffer extends Bitmap {
     /* Private functions go below here */
    /***********************************/
 
-   private function loadComplete(e : Event) {
-       var bitmap = cast(imgLoader.content, Bitmap);
-       // XXX
-       changeTileset(bitmap.bitmapData, 9, 17);
-   }
-
     /* Redraws all characters of the character buffer that are
        on screen */
     private function redrawVisibleCharacters()
@@ -1534,12 +1521,17 @@ class CharBuffer extends Bitmap {
 
 	this.bitmapData.copyPixels(bitmap, tileCopyRect, position);
 	if(blockWidth > tileWidth) {
-	    // XXX fill area between tileWidth and fontWidth
-	    // What colour?
+	    var lBg = currentAttributes.getBgColour();
+	    lBg |= 0xff << 24;
+	    var fillRect = new Rectangle(position.x + tileWidth, position.y, blockWidth - tileWidth, blockHeight);
+	    bitmapData.fillRect(fillRect, lBg);
 	}
 	if(blockHeight > tileHeight) {
-	    // XXX fill area between tileHeight and fontHeight
-	    // What colour?
+	    var lBg = currentAttributes.getBgColour();
+	    lBg |= 0xff << 24;
+	    var fillRect = new Rectangle(position.x, position.y + tileHeight,
+		                         tileWidth, blockHeight - tileHeight);
+	    bitmapData.fillRect(fillRect, lBg);
 	}
     }
 
@@ -1600,18 +1592,22 @@ class CharBuffer extends Bitmap {
 	var bgG = 255 & (lBg >> 8);
 	var bgB = 255 & lBg;
 
-	this.bitmapData.copyPixels(bitmap, fontCopyRect, position);
+	bitmapData.copyPixels(bitmap, fontCopyRect, position);
 	var colorTransform = new ColorTransform(
 		(fgR-bgR)/255, (fgG-bgG)/255, (fgB-bgB)/255, 1,
 		bgR, bgG, bgB, 0);
-	this.bitmapData.colorTransform(new Rectangle(position.x, position.y, blockWidth, blockHeight), colorTransform);
+	bitmapData.colorTransform(new Rectangle(position.x, position.y, fontWidth, fontHeight), colorTransform);
 	if(blockWidth > fontWidth) {
-	    // XXX fill area between tileWidth and fontWidth
-	    // What colour?
+	    lBg |= 0xff << 24;
+	    var fillRect = new Rectangle(position.x + fontWidth, position.y,
+		                         blockWidth - fontWidth, blockHeight);
+	    bitmapData.fillRect(fillRect, lBg);
 	}
 	if(blockHeight > fontHeight) {
-	    // XXX fill area between tileHeight and fontHeight
-	    // What colour?
+	    lBg |= 0xff << 24;
+	    var fillRect = new Rectangle(position.x, position.y + fontHeight,
+		                         fontWidth, blockHeight - fontHeight);
+	    bitmapData.fillRect(fillRect, lBg);
 	}
     }
 

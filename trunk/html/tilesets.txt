@@ -1,0 +1,8 @@
+# Comments can be written with the first character on the line set to #.
+#
+# The format is: filename;width;height;description
+#
+# Empty lines are allowed.
+
+tilesets/geoduck-10-20.png;10;20;Geoduck's 10x20 pixel tileset.
+tilesets/geoduck-20-40.png;20;40;Geoduck's 20x40 pixel tileset.

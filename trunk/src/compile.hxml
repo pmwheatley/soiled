@@ -4,4 +4,3 @@
 --flash-use-stage
 -main Client
 -xml soiled.swf.xml
--resource ../tilesets/geoduck-10-20.png@tileset
