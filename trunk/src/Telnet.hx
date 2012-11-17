@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2009 Sebastian Andersson
+   Copyright 2007-2012 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ class Telnet extends flash.events.EventDispatcher {
 
     private static var terminals : Array<String> = [
     	"xterm-color",
-	"Soiled-0.46",
+	"Soiled-pre-0.47",
 	"Soiled",
     	"xterm",
     	"vt102",
