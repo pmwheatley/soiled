@@ -57,8 +57,8 @@ class CharBuffer extends Bitmap {
     private var blockHeight : Int;
 
     /* The size of tiles in whole pixels: */
-    private var tileHeight : Int = 0;
-    private var tileWidth : Int = 0;
+    private var tileHeight : Int;
+    private var tileWidth : Int;
 
     /* The used size of the font in whole pixels: */
     private var fontHeight : Int;
