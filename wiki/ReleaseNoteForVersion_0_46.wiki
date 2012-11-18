@@ -5,7 +5,7 @@
 Version 0.46 adds support for displaying tiles for the vt_tiledata patch for NetHack and it adds support for sending escape codes for the numeric keypad.
 
 == Upgrade ==
-To enable tiles support, the server should serve a tilesets.txt file from the same directory as the soiled.swf file (or its html file?). The file should say where the tileset can be downloaded.
+To enable tiles support, the server should serve a tilesets.txt file from the same directory as the soiled.swf file (or its html file?). That file should say where the tileset can be downloaded and the size of the tiles.
 There is an example file included (as well as tileset files) in the html directory.
 
 = The changes in version 0.45 =
