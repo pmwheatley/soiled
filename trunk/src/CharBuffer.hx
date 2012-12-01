@@ -42,7 +42,7 @@ import flash.utils.TypedDictionary;
 
    Positions starts at 0 in this class.
 */
-class CharBuffer extends Bitmap {
+class CharBuffer implements ICharBuffer, extends Bitmap {
 
     private static inline var MAX_SCROLLBACK_SIZE = 10000; // ~6.5MB...
 
@@ -882,7 +882,7 @@ class CharBuffer extends Bitmap {
     }
 
     /* Sets the cursor's X&Y character position */
-    public function setCurs(x, y)
+    public function setCurs(x, y) : Void
     {
 	if(x == cursX && y == cursY) return;
 	beginUpdate();
@@ -891,7 +891,7 @@ class CharBuffer extends Bitmap {
     }
 
     /* Returns the extra cursor's column */
-    public function getExtraCursColumn()
+    public function getExtraCursColumn() : Int
     {
 	return extraCursX;
     }

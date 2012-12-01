@@ -34,7 +34,7 @@ class CommandLineHandler implements ICommandLineHandling
 
     private static inline var UTF_ERROR = 0xFFFD;
 
-    private var cb : CharBuffer;
+    private var cb : ICharBuffer;
 
     private var sendByte : Int -> Void;
     private var drawPrompt : Void -> Void;
@@ -76,7 +76,7 @@ class CommandLineHandler implements ICommandLineHandling
     private var fontRepository : IFontRepository;
 
     public function new(sendByte : Int -> Void,
-	                charBuffer : CharBuffer,
+	                charBuffer : ICharBuffer,
 			config : Config,
 			fontRepository : IFontRepository)
     {

@@ -38,7 +38,7 @@ class VT100 implements ITelnetEventListener,
     private var charset48 : Array<Int>;
     private var charset_cp437 : Array<Int>;
 
-    private var cb : CharBuffer;
+    private var cb : ICharBuffer;
 
     private var clh : ICommandLineHandling;
 
@@ -116,7 +116,7 @@ class VT100 implements ITelnetEventListener,
     private var tabStops : Array<Bool>;
 
     public function new(sendByte : Int -> Void,
-	                charBuffer : CharBuffer,
+	                charBuffer : ICharBuffer,
                         clh : ICommandLineHandling,
 			config : Config)
     {
