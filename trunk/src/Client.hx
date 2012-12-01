@@ -96,7 +96,9 @@ class Client {
 		vt100.doPaste(e.text);
 	    } else {
 		var c = e.text.charCodeAt(0);
-		var newEvent = new flash.events.KeyboardEvent("textInput", false, false, c);
+		var newEvent = new MyKeyboardEvent();
+		newEvent.charCode = c;
+		newEvent.isTextInput = true;
 		vt100.handleKey(newEvent);
 	    }
 	} catch(ex : Dynamic) {
@@ -110,7 +112,17 @@ class Client {
 	try {
 	    var e : flash.events.KeyboardEvent = o;
 
-	    vt100.handleKey(e);
+	    var m = new MyKeyboardEvent();
+	    m.altKey = e.altKey;
+	    m.shiftKey = e.shiftKey;
+	    m.ctrlKey = e.ctrlKey;
+
+	    m.keyCode = e.keyCode;
+	    m.charCode = e.charCode;
+
+	    m.isNumpad = e.keyLocation == flash.ui.KeyLocation.NUM_PAD;
+
+	    vt100.handleKey(m);
 	} catch ( ex : Dynamic ) {
 	    trace(ex);
 	}

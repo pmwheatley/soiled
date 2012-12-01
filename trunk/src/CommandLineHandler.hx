@@ -17,9 +17,6 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-import flash.ui.Keyboard;
-import flash.ui.KeyLocation;
-import flash.events.KeyboardEvent;
 import wordCache.WordCacheBase;
 import wordCache.FrequencyWordCache;
 import wordCache.LexigraphicWordCache;
@@ -157,7 +154,7 @@ class CommandLineHandler implements ICommandLineHandling
 	return cmdInputMode;
     }
 
-    public function handleKey(e : KeyboardEvent)
+    public function handleKey(e : MyKeyboardEvent)
     {
 	handleKey_(e);
 	cb.endUpdate();
@@ -946,7 +943,7 @@ class CommandLineHandler implements ICommandLineHandling
 	} else return false;
     }
 
-    private function handleFKey(e : KeyboardEvent,
+    private function handleFKey(e : MyKeyboardEvent,
 	                        name : String,
 				keyNumber : Int,
 				fNumber : Int)
@@ -967,7 +964,7 @@ class CommandLineHandler implements ICommandLineHandling
 	}
     }
 
-    private function handleArrowKey(e : KeyboardEvent,
+    private function handleArrowKey(e : MyKeyboardEvent,
 	                            name : String,
 				    keyNumber : Int,
 				    aNumber : Int)
@@ -988,96 +985,96 @@ class CommandLineHandler implements ICommandLineHandling
 	}
     }
 
-    private function handleKey_(e : KeyboardEvent)
+    private function handleKey_(e : MyKeyboardEvent)
     {
 	try {
 
-	    var isTextInput = e.type == "textInput";
+	    var isTextInput = e.isTextInput;
 	    var c = e.charCode;
 
 	    var oldTabNumber = tabNumber;
 	    tabNumber = 0;
 
 	    switch(e.keyCode) {
-		case Keyboard.PAGE_UP:
+		case MyKeyboard.PAGE_UP:
 		    if(isTextInput) return;
 		    if(e.shiftKey) {
 			cb.scrollbackUp();
 		    } else handleFKey(e, "PGUP", 112, 5);
-		case Keyboard.PAGE_DOWN:
+		case MyKeyboard.PAGE_DOWN:
 		    if(isTextInput) return;
 		    if(e.shiftKey) {
 			cb.scrollbackDown();
 		    } else handleFKey(e, "PGDN", 110, 6);
-		case Keyboard.UP:
+		case MyKeyboard.UP:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "UP", 112, 65);
-		case Keyboard.DOWN:
+		case MyKeyboard.DOWN:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "DOWN", 110, 66);
-		case Keyboard.RIGHT:
+		case MyKeyboard.RIGHT:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "RIGHT", 102, 67);
-		case Keyboard.LEFT:
+		case MyKeyboard.LEFT:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "LEFT", 98, 68);
-		case Keyboard.END:
+		case MyKeyboard.END:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "END", 101, 70);
-		case Keyboard.HOME:
+		case MyKeyboard.HOME:
 		    if(isTextInput) return;
 		    handleArrowKey(e, "HOME", 97, 72);
-		case Keyboard.F1:
+		case MyKeyboard.F1:
 		    if(isTextInput) return;
 		    handleFKey(e, "F1", -1, 11);
-		case Keyboard.F2:
+		case MyKeyboard.F2:
 		    if(isTextInput) return;
 		    handleFKey(e, "F2", -1, 12);
-		case Keyboard.F3:
+		case MyKeyboard.F3:
 		    if(isTextInput) return;
 		    handleFKey(e, "F3", -1, 13);
-		case Keyboard.F4:
+		case MyKeyboard.F4:
 		    if(isTextInput) return;
 		    handleFKey(e, "F4", -1, 14);
-		case Keyboard.F5:
+		case MyKeyboard.F5:
 		    if(isTextInput) return;
 		    handleFKey(e, "F5", -1, 15);
-		case Keyboard.F6:
+		case MyKeyboard.F6:
 		    if(isTextInput) return;
 		    handleFKey(e, "F6", -1, 17);
-		case Keyboard.F7:
+		case MyKeyboard.F7:
 		    if(isTextInput) return;
 		    handleFKey(e, "F7", -1, 18);
-		case Keyboard.F8:
+		case MyKeyboard.F8:
 		    if(isTextInput) return;
 		    handleFKey(e, "F8", -1, 19);
-		case Keyboard.F9:
+		case MyKeyboard.F9:
 		    if(isTextInput) return;
 		    handleFKey(e, "F9", -1, 20);
-		case Keyboard.F10:
+		case MyKeyboard.F10:
 		    if(isTextInput) return;
 		    handleFKey(e, "F10", -1, 21);
-		case Keyboard.F11:
+		case MyKeyboard.F11:
 		    if(isTextInput) return;
 		    handleFKey(e, "F11", -1, 23);
-		case Keyboard.F12:
+		case MyKeyboard.F12:
 		    if(isTextInput) return;
 		    handleFKey(e, "F12", -1, 24);
-                case Keyboard.INSERT:
+                case MyKeyboard.INSERT:
 		    if(isTextInput) return;
 		    cb.scrollbackToBottom();
 		    if(!isLineInputMode()) handleFKey(e, "INSERT", -1, 2);
-                case Keyboard.DELETE:
+                case MyKeyboard.DELETE:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
 		    if(!isLineInputMode()) handleFKey(e, "DELETE", -1, 3);
 		    else handleDelete();
-                case Keyboard.BACKSPACE:
+                case MyKeyboard.BACKSPACE:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
 		    if(!isLineInputMode()) sendByte(127); // DEL
 		    else handleBackspace();
-                case Keyboard.TAB:
+                case MyKeyboard.TAB:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
 		    if(!isLineInputMode()) sendByte(9); // TAB.
@@ -1085,7 +1082,7 @@ class CommandLineHandler implements ICommandLineHandling
 			tabNumber = oldTabNumber;
 			handleTab();
 		    }
-                case Keyboard.ENTER:
+                case MyKeyboard.ENTER:
 	 	    if(isTextInput) return;
 	            cb.scrollbackToBottom();
 		    handleEnter();
@@ -1104,7 +1101,7 @@ class CommandLineHandler implements ICommandLineHandling
 		    if(!isLineInputMode()) {
 		        if(e.ctrlKey && c >= 96) c -= 96;
 		        if(c == 0) return; // NUL
-                        if(e.keyLocation == KeyLocation.NUM_PAD)
+                        if(e.isNumpad)
                             sendNumericKey(c);
                         else
 		            sendChar(c);

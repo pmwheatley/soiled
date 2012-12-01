@@ -17,8 +17,6 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-import flash.events.KeyboardEvent;
-
 interface ICommandLineHandling {
 
     /** If non-ascii characters should be sent as UTF-8 or
@@ -67,7 +65,7 @@ interface ICommandLineHandling {
     function isCommandInputMode() : Bool;
 
     /** Handle a key pressed in the char-buffer. **/
-    function handleKey(e : KeyboardEvent) : Void;
+    function handleKey(e : MyKeyboardEvent) : Void;
 
     /** The s string have been pasted into the char-buffer.
         Handle it as if the user had written the characters

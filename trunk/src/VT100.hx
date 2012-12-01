@@ -17,9 +17,7 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-import flash.ui.Keyboard;
 import flash.external.ExternalInterface;
-import flash.events.KeyboardEvent;
 
 /*
    VT100 handles input from the server and sends draw requests to
@@ -163,7 +161,7 @@ class VT100 implements ITelnetEventListener,
 	}
     }
 
-    public function handleKey(e : KeyboardEvent)
+    public function handleKey(e : MyKeyboardEvent)
     {
 	clh.handleKey(e);
     }
