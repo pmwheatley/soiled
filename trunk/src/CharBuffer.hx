@@ -1332,7 +1332,7 @@ class CharBuffer implements ICharBuffer, extends Bitmap {
 	insertCharAt_(b, cursX++, cursY);
     }
 
-    public function printCharWithAttribute_(b : Int, attrib : CharAttributes)
+    private function printCharWithAttribute_(b : Int, attrib : CharAttributes)
     {
 	var oldAttrib = currentAttributes;
 	currentAttributes = attrib;
@@ -1385,7 +1385,6 @@ class CharBuffer implements ICharBuffer, extends Bitmap {
 
     private inline function getTilesetBitmap() : BitmapData
     {
-	// TODO: Should be configurable:
 	return tilesetBitmap;
     }
 

@@ -17,7 +17,6 @@
    Contact information is located here: <http://bofh.diegeekdie.com/>
 */
 
-
 /*
    Displays fixed width characters and a cursor.
    Has character attributes (and methods to change them),
@@ -48,13 +47,13 @@ interface ICharBuffer {
     /* Prints the character b on the screen and moves the cursor. */
     public function printChar(b : Int) : Void;
 
-    /* Inserts the character b on the screen, moves previous text to
-       the right and moves the cursor. */
-    public function insertChar(b : Int) : Void;
-
     /* Prints the character b, with attributes attrib, on the screen
        and moves the cursor. */
     public function printCharWithAttribute(b : Int, attrib : CharAttributes) : Void;
+
+    /* Inserts the character b on the screen, moves previous text to
+       the right and moves the cursor. */
+    public function insertChar(b : Int) : Void;
 
     /* Prints the character b on the x,y position. Does not move the cursor. */
     public function printCharAt(b : Int, x : Int, y : Int) : Void;
@@ -206,5 +205,4 @@ interface ICharBuffer {
 
     // public function changeTileset(bitmap : BitmapData, width : Int, height : Int) : Void;
 
-    public function printCharWithAttribute_(b : Int, attrib : CharAttributes) : Void;
 }
