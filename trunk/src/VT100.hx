@@ -89,7 +89,7 @@ class VT100 implements ITelnetEventListener,
 
     var irmMode : Bool; // Insert/replace mode. true = insert.
 
-    private var promptTimer : flash.utils.Timer;
+    private var promptTimer : Timer;
     private var promptWaiting : Bool;
 
     private var outputAfterPrompt : Int;
@@ -153,8 +153,7 @@ class VT100 implements ITelnetEventListener,
 	    this.config = config;
 	    this.clh = clh;
 
-	    promptTimer = new flash.utils.Timer(250, 1);
-	    promptTimer.addEventListener("timer", promptTimeout);
+	    promptTimer = new Timer(250, 1, promptTimeout);
 
 	    this.sendByte = sendByte;
 
@@ -1362,7 +1361,7 @@ class VT100 implements ITelnetEventListener,
 	cb.endUpdate();
     }
 
-    private function promptTimeout(o : Dynamic)
+    private function promptTimeout() : Void
     {
 	// trace("promptTimeout");
 	if(promptWaiting) gotPrompt_(true);
