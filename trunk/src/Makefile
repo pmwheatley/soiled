@@ -22,9 +22,13 @@ CompileTime.hx:
 soiled.swf soiled.swf.xml: \
 		CharAttributes.hx CharBuffer.hx Client.hx CommandLineHandler.hx \
 		compile.hxml Config.hx \
-		ITelnetEventListener.hx IVtParserListener.hx Telnet.hx \
+		FontRepository.hx ICharBuffer.hx ICommandLineHandling.hx \
+		IFontRepository.hx ITelnetEventListener.hx \
+		IVtParserListener.hx MyKeyboard.hx MyKeyboardEvent.hx \
+		Telnet.hx Timer.hx \
 		VT100.hx VtParser.hx \
-		wordCache/*.hx
+		wordCache/*.hx \
+		WordWrapper.hx
 	@echo Compiling soiled.swf
 	$(MAKE) CompileTime.hx
 	haxe compile.hxml
