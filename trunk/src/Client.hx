@@ -253,7 +253,8 @@ class Client {
             charBuffer = new CharBuffer(onNewFont, config);
 	    var clh = new CommandLineHandler(sendByte,
                                              charBuffer,
-                                             config);
+                                             config,
+					     new FontRepository());
             vt100 = new VT100(sendByte, charBuffer, clh, config);
             clh.setDrawPrompt(vt100.drawPrompt);
 

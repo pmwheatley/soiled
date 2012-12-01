@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2010 Sebastian Andersson
+   Copyright 2007-2012 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -73,15 +73,18 @@ class CommandLineHandler implements ICommandLineHandling
 
     private var config : Config;
 
+    private var fontRepository : IFontRepository;
+
     public function new(sendByte : Int -> Void,
 	                charBuffer : CharBuffer,
-			config : Config)
+			config : Config,
+			fontRepository : IFontRepository)
     {
 	try {
-	    this.isMonospaceCache = new Hash<Bool>();
 	    this.sendByte = sendByte;
 	    this.cb = charBuffer;
 	    this.config = config;
+	    this.fontRepository = fontRepository;
 
 	    if(config.getWordCacheType() == "FREQUENCY") {
 		wordCache = new FrequencyWordCache();
@@ -550,52 +553,11 @@ class CommandLineHandler implements ICommandLineHandling
 	return 0;
     }
 
-    private var isMonospaceCache : Hash<Bool>;
-
-    private function isMonospaceFont(fontName : String) : Bool
-    {
-	if(isMonospaceCache.exists(fontName)) {
-	    return isMonospaceCache.get(fontName);
-	}
-	var format = new flash.text.TextFormat();
-	format.size = 16;
-	format.font = fontName;
-	format.italic = true;
-	format.underline = true;
-	var t = new flash.text.TextField();
-
-	t.defaultTextFormat = format;
-	t.text = "W i";
-	var r = t.getCharBoundaries(0);
-	var result : Bool = false;
-	if(r != null) {
-	    var currWidth0 = Math.ceil(r.width);
-	    r = t.getCharBoundaries(1);
-	    if(r != null) {
-		var currWidth1 = Math.ceil(r.width);
-		r = t.getCharBoundaries(2);
-		if(r != null) {
-		    var currWidth2 = Math.ceil(r.width);
-
-		    result = currWidth0 == currWidth1 &&
-			currWidth1 == currWidth2;
-		}
-	    }
-	}
-	isMonospaceCache.set(fontName, result);
-	return result;
-    }
-
     private function handleCmdFont(last : Int)
     {
 	var cmd = StringTools.trim(inputString.substr(last));
 	if(cmd.length == 0) {
-	    var names = new Array<String>();
-	    for(font in flash.text.Font.enumerateFonts(true)) {
-		if(font.fontStyle == flash.text.FontStyle.REGULAR &&
-			isMonospaceFont(font.fontName))
-		    names.push(font.fontName);
-	    }
+	    var names = fontRepository.getMonospaceFonts();
 	    names.sort(StringComparer);
 	    var tmp = new StringBuf();
 	    tmp.add("\nAvailable fonts are: ");
