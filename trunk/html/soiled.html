@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<!-- Soiled. Copyright 2007-2012 Sebastian Andersson. -->
+<!-- Soiled. Copyright 2007-2014 Sebastian Andersson. -->
 <head>
 <meta charset="utf-8">
 <title>Soiled by Sebastian Andersson.</title>
@@ -17,11 +17,12 @@ function ChangeTitle(title)
 // CHANGE THESE:
 var server="dum.acc.umu.se";
 var port="2001";
+// var useSSL=true;
 var debug=true;
 var localEdit = true; // If local editing should be default.
 // var policyFile="xmlsocket://192.168.0.36:1040";
 
-var requiredMajorVersion = 9;
+var requiredMajorVersion = 11;
 var requiredMinorVersion = 0;
 var requiredRevision = 0;
 var flashvars = "s=" + server + "&p=" + port;
@@ -54,6 +55,7 @@ flashvars += "FFFFFF"; // Bright-light gray
 
 // flashvars += "&cursorType=block"; // or "vertical" or "underline".
 
+if(useSSL) flashvars += "&ssl=on";
 if(debug) flashvars += "&debug=on";
 if(localEdit) flashvars += "&localEdit=on";
 else flashvars += "&localEdit=off";

@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2012 Sebastian Andersson
+   Copyright 2007-2014 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -228,6 +228,7 @@ class Client {
 	    telnet = new Telnet(vt100,
 		                params.s,
 				Std.parseInt(params.p),
+				params.ssl != null,
 				config);
 	    telnet.addEventListener("close", onClose);
 	}
@@ -286,7 +287,7 @@ class Client {
             onResize(null);
 
 	    charBuffer.appendText("Soiled, version pre-0.47 (" + CompileTime.time + ")\n" +
-		    "  (C)2007-2012 Sebastian Andersson.");
+		    "  (C)2007-2014 Sebastian Andersson.");
 
 	    var loader = new URLLoader();
 	    loader.addEventListener(Event.COMPLETE, onMotdLoaded);

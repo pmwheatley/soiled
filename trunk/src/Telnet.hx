@@ -1,5 +1,5 @@
 /* Soiled - The flash mud client.
-   Copyright 2007-2012 Sebastian Andersson
+   Copyright 2007-2014 Sebastian Andersson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,9 @@
 */
 
 import flash.net.Socket;
+#if flash11
+import flash.net.SecureSocket;
+#end
 
 enum EnuTelnetInputState {
     TIS_NORMAL;
@@ -91,6 +94,7 @@ class Telnet extends flash.events.EventDispatcher {
     private var naws : Bool;
 
     private var s : Socket;
+    private var ssl : Bool;
     private var eventListener : ITelnetEventListener;
     private var inputState : EnuTelnetInputState;
 
@@ -106,9 +110,12 @@ class Telnet extends flash.events.EventDispatcher {
     public function new(eventListener : ITelnetEventListener,
 	                server : String,
 			port : Int,
+			useSSL : Bool,
 			config : Config)
     {
 	super();
+
+	this.ssl = useSSL;
 
 	this.config = config;
 
@@ -125,7 +132,19 @@ class Telnet extends flash.events.EventDispatcher {
 	    optionsHim.push(TOS_NO);
 	}
 
-	s = new Socket();
+#if flash11
+	if(useSSL && !SecureSocket.isSupported) {
+	    eventListener.appendText("SSL is configured, but not supported in your browser");
+	    return;
+	}
+	if(useSSL) {
+	    s = new SecureSocket();
+	} else {
+#end
+	    s = new Socket();
+#if flash11
+	}
+#end
 	s.addEventListener("socketData", onSocketData);
 	s.addEventListener("close", gotClose);
 	s.addEventListener("connect", gotConnect);
@@ -629,6 +648,10 @@ class Telnet extends flash.events.EventDispatcher {
 
     private function gotConnect(o : Dynamic)
     {
+    	if(ssl) {
+	    var ss : SecureSocket = cast s;
+	    eventListener.appendText("ServerCertificateStatus: " + ss.serverCertificateStatus + "\n");
+	}
 	eventListener.appendText("Connected!\n\n");
 	var str = config.getAutologin();
 	if(str != null) writeString(str);
