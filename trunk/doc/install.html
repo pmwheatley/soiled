@@ -91,6 +91,10 @@ be served via SSL/TLS. (Good luck finding that in Adobe's documentation of flash
 </p>
 
 <p>
+Flash only allows connecting to SSL services that has a valid certificate, signed by one of the browser's trusted CAs. So self-signed certificates does not work.
+</p>
+
+<p>
 If the flashVars parameter string contains "debug=on", the client will run in debug mode. It is mostly the same, but some trace messages are written over the window's content. It will also switch the background to some dark gray to make some graphics operations easier to debug.
 </p>
 
